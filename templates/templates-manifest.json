@@ -1,0 +1,145 @@
+{
+  "brand": "FIN DINING by Finsight",
+  "version": "4.1",
+  "mode": "concept-locked-adaptive",
+  "renderer": "templates/render_adaptive_course.py",
+  "legacyRenderer": "templates/render_daily_course.py",
+  "cardRange": [
+    5,
+    7
+  ],
+  "archetypes": {
+    "cover": [
+      "split-hero",
+      "centered-editorial"
+    ],
+    "summary": [
+      "lead-plus-support",
+      "editorial-list"
+    ],
+    "event": [
+      "timeline-cards",
+      "stacked-insights"
+    ],
+    "reason": [
+      "causal-flow",
+      "stacked-insights"
+    ],
+    "data": [
+      "range-dots",
+      "line-chart",
+      "rank-bars"
+    ],
+    "impact": [
+      "featured-plus-grid"
+    ],
+    "cta": [
+      "calendar-grid",
+      "checklist-stack"
+    ]
+  },
+  "canvas": [
+    1080,
+    1350
+  ],
+  "week": [
+    "mon-policy",
+    "tue-global",
+    "wed-market",
+    "thu-industry",
+    "fri-weekly",
+    "sat-preview"
+  ],
+  "templates": {
+    "mon-policy": {
+      "templateId": "fin_dining_mon_policy_v3",
+      "directory": "templates/mon-policy",
+      "layout": "templates/mon-policy/layout.json",
+      "preview": "templates/mon-policy/mon-policy-preview.png",
+      "masterSha256": {
+        "01_cover_master.png": "ddfecabfc3125db1e45a345816910960c1eb0a21b2e5a263009b4970ef42069a",
+        "02_summary_master.png": "4f16497b68e8cd69a34a097cfdcc5731a656763ad80a82b3315bc2f729c4929c",
+        "03_event_master.png": "c9ed41c0df49ecb531f4660543bc9d01acf07ee14caa1b1c73226662a7cbc3a4",
+        "04_reason_master.png": "71fe64875ca4f453b6043731465b4cfca0a0e852bbe32b7f3d90dc54f60e9f13",
+        "05_data_master.png": "c3d763c2d08cf3a5600bad710f9a03f859087554ba6a68e26e2a0d51f4109f10",
+        "06_impact_master.png": "0c1bccb9411c26159d26c8e420edb2280b07e431a27b09832cc62d726ba17adb",
+        "07_cta_master.png": "8350ba615f682be465ea473b12a032ce2431aa804cab025b9d17bb6475cdd5b0"
+      }
+    },
+    "tue-global": {
+      "templateId": "fin_dining_tue_global_v3",
+      "directory": "templates/tue-global",
+      "layout": "templates/tue-global/layout.json",
+      "preview": "templates/tue-global/tue-global-preview.png",
+      "masterSha256": {
+        "01_cover_master.png": "f9e682bca054873c67f6cc5362bc4720df7b433a4ea58f3cd027f60837100cc1",
+        "02_summary_master.png": "19f9f4e0423b3838322fe64235f3ba8586760e7c62df1392c33d5053462aef42",
+        "03_event_master.png": "f5091dc2504fdbb85cc3fd6609d4456cf8450632f3128e6687fa04ab6ad57e54",
+        "04_reason_master.png": "c0f8bfd8e186d16c7706921fa6701666673d62b6a628bd85d9a0dfcd31c50f88",
+        "05_data_master.png": "08087f01aa4e9b532b798d2890e4d9de614a57e488e07aa4a74666932c7747e4",
+        "06_impact_master.png": "7e27ed6dd9c599896ec75744290a90880f8e378501117067810c89b9495683db",
+        "07_cta_master.png": "ed649fb1e08d7caff64166b1603df24da4d6ab407e2eb3ec52b54944069f8eb8"
+      }
+    },
+    "wed-market": {
+      "templateId": "fin_dining_wed_market_v3",
+      "directory": "templates/wed-market",
+      "layout": "templates/wed-market/layout.json",
+      "preview": "templates/wed-market/wed-market-preview.png",
+      "masterSha256": {
+        "01_cover_master.png": "6c5a60ab875b588c94bb82aa98bdc52d2ea70b37e55fd3b436f81dae10dc015b",
+        "02_summary_master.png": "6878632bc9ac0a8cd080f2b24fe661e11624eabac128ffe7095e524a1c9c57f0",
+        "03_event_master.png": "45f514fae4b692b3330eeeb3fa8daa3069ce312d859c2423b5e3ac96664daa2c",
+        "04_reason_master.png": "734b6a3ce67b419afbde109cd58d014957e22088287931928e9270b9c4e2e2ca",
+        "05_data_master.png": "3e8f30b6616f57e3c7da99af8ca4fea33fa4a60769f993de328c42e00af906c7",
+        "06_impact_master.png": "b172bb16e3ad91910a5edb89d28e5bec571886bcbe98fe4b1c03f4c653ba9e55",
+        "07_cta_master.png": "61e4907a3c1d2a005444dbaa4cbd1840c5ace00b63b495d1007baf923d861bfc"
+      }
+    },
+    "thu-industry": {
+      "templateId": "fin_dining_thu_industry_v3",
+      "directory": "templates/thu-industry",
+      "layout": "templates/thu-industry/layout.json",
+      "preview": "templates/thu-industry/thu-industry-preview.png",
+      "masterSha256": {
+        "01_cover_master.png": "b8f5e0a9adddadc0c641ca0d563d9d352b082f48c3aa7eaac3efaffce3ca4b9e",
+        "02_summary_master.png": "cdd70f3b0b7dfadae798c8ee6277d650bc3999c91472721cc811668cf046313d",
+        "03_event_master.png": "942aef53ddfbf654a23c6caf878a92885932fd0def7af91795b5e2d8c953bbde",
+        "04_reason_master.png": "af81123c4f8754c9f8b42819e8417b112df82da7cbe9a78a8d01b2500067529e",
+        "05_data_master.png": "62e7d6d68926d762000115fb6135e609b054bf8f88dca59f8722203940c3daff",
+        "06_impact_master.png": "3324e821f2d349e44c417583360f7ec08ef6054f098faa200f7800477bc627de",
+        "07_cta_master.png": "b43c5f20ef001a90f310f3cc8735224e34d3b3050f33b652748cd681bffd1db4"
+      }
+    },
+    "fri-weekly": {
+      "templateId": "fin_dining_fri_weekly_v3",
+      "directory": "templates/fri-weekly",
+      "layout": "templates/fri-weekly/layout.json",
+      "preview": "templates/fri-weekly/fri-weekly-preview.png",
+      "masterSha256": {
+        "01_cover_master.png": "371ba36b8e6a4cdc106928c3b402d40946c30d4992d95f05e58458fffe34e765",
+        "02_summary_master.png": "4d639ec1fbaae719bea351e2d3b8c89a4196d5412fc1ffba65c04ff7f6e07cc3",
+        "03_event_master.png": "d72eae97be749d45e276fbc51ed7e4c1a602a4870b43d229748a32f13424b132",
+        "04_reason_master.png": "3c863cddf860c7b19de5a4ac6f0bddc41065ad21095651497f6dbdcaa7a81f42",
+        "05_data_master.png": "6eecb11116de00161cb15f96580508b19e99c2005a3818c17a8918a69f6011a3",
+        "06_impact_master.png": "437b9b7563b814bb971465de263b39671b711369a3ca0f9a45f3c2ba69065728",
+        "07_cta_master.png": "68730bc6144008f4023b6c9237d048f88b4040f9d373de690841ba4d79759a89"
+      }
+    },
+    "sat-preview": {
+      "templateId": "fin_dining_sat_preview_v3",
+      "directory": "templates/sat-preview",
+      "layout": "templates/sat-preview/layout.json",
+      "preview": "templates/sat-preview/sat-preview-preview.png",
+      "masterSha256": {
+        "01_cover_master.png": "753f161e5439b5ec308ea981446b3b20cb834dbec5d4b1027edbfd0bbd984cff",
+        "02_summary_master.png": "37ca6c5a3ff6315e11d1bbb292328fd5fea3ee293229619560066b065e94b3bb",
+        "03_event_master.png": "ffd6c810cf905ae00812709ecb82e08733740c1c4d903704eb0ac295608aab7b",
+        "04_reason_master.png": "51916fce4189cb3d50b74fadc893150d303d79be1bd762c77fd63762bc8c001b",
+        "05_data_master.png": "1809cbcfea829a7c3aaf0b5a3aca906fd22ccb8b154fb68665ea118773dddf41",
+        "06_impact_master.png": "d77f1c18fc65e3d923bf2cc87e51fae85f2765c5853bf3cda98218b6f4db09e8",
+        "07_cta_master.png": "2afb94f1885862a40f07ee56b172be7357ce333eefa0818ab2cf21b4dd46551a"
+      }
+    }
+  }
+}

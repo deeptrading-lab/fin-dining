@@ -1,0 +1,24 @@
+{
+  "date": "2026-08-20",
+  "day_key": "thu-industry",
+  "topic": "템플릿 렌더링 검수용 샘플",
+  "cards": [
+    {"eyebrow": "COURSE 04 · INDUSTRY", "headline": "산업의 연결고리를 읽는 법", "subheadline": "뉴스에서 밸류체인과 기업 영향까지"},
+    {"section": "TASTING NOTES", "headline": "오늘의 핵심 결론", "items": ["확인된 사건과 숫자를 먼저 봅니다", "밸류체인의 전달 순서를 연결합니다", "기회와 리스크를 같은 비중으로 봅니다"]},
+    {"section": "THE EVENT", "headline": "무슨 일이 있었나", "items": ["발표일과 기준일을 함께 표시", "확정된 변화와 전망을 구분", "다음 공식 일정까지 확인"]},
+    {"section": "WHY IT MATTERS", "headline": "왜 중요한가", "items": ["수요 변화가 시작점", "부품과 제조를 거쳐 전달", "매출과 비용에 서로 다르게 반영"]},
+    {"section": "THE NUMBERS", "headline": "숫자로 본 산업 흐름", "note": "동일 기준으로 다시 계산한 5개 비교값", "data_points": [
+      {"label": "원재료", "value": 92, "display": "92"},
+      {"label": "장비", "value": 108, "display": "108"},
+      {"label": "부품", "value": 104, "display": "104"},
+      {"label": "제조", "value": 121, "display": "121"},
+      {"label": "수요", "value": 116, "display": "116"}
+    ]},
+    {"section": "YOUR MONEY", "headline": "기회와 리스크", "items": [
+      {"name": "원재료·인프라", "opportunity": "수요 회복", "risk": "가격 변동"},
+      {"name": "부품·장비", "opportunity": "가동률 개선", "risk": "재고 부담"},
+      {"name": "완제품·고객", "opportunity": "판매 확대", "risk": "경쟁 심화"}
+    ]},
+    {"section": "NEXT RESERVATION", "headline": "다음에 확인할 것", "checklist": ["공식 통계 발표일", "기업 실적 발표", "수출입 데이터", "정책 일정"], "cta": "댓글로 다음 코스를 예약해 주세요", "sources": ["공식기관", "기업 IR"]}
+  ]
+}

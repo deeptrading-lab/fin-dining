@@ -1,0 +1,229 @@
+{
+  "brand": "FIN DINING by Finsight",
+  "templateId": "fin_dining_mon_policy_v3",
+  "course": "COURSE 01",
+  "label": "POLICY · 정책",
+  "canvas": {
+    "width": 1080,
+    "height": 1350
+  },
+  "colors": {
+    "background": "#131210",
+    "paper": "#F8F3EA",
+    "ivory": "#F4EEE4",
+    "ink": "#1C1915",
+    "gold": "#C3A15D",
+    "muted": "#B0A79B",
+    "accent": "#6F8FFF",
+    "accentInk": "#3557C7",
+    "accent2": "#AFC0FF"
+  },
+  "fonts": {
+    "display": {
+      "family": "New York",
+      "path": "/System/Library/Fonts/NewYork.ttf",
+      "minimumSize": 28
+    },
+    "korean": {
+      "family": "Apple SD Gothic Neo",
+      "path": "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+      "headlineWeight": "Bold",
+      "bodyWeight": "Regular",
+      "minimumBodySize": 30,
+      "minimumLegalSize": 24
+    }
+  },
+  "heroAsset": "assets/fin-dining-mon-policy-hero.png",
+  "files": [
+    "01_cover_master.png",
+    "02_summary_master.png",
+    "03_event_master.png",
+    "04_reason_master.png",
+    "05_data_master.png",
+    "06_impact_master.png",
+    "07_cta_master.png"
+  ],
+  "masterSha256": {
+    "01_cover_master.png": "ddfecabfc3125db1e45a345816910960c1eb0a21b2e5a263009b4970ef42069a",
+    "02_summary_master.png": "4f16497b68e8cd69a34a097cfdcc5731a656763ad80a82b3315bc2f729c4929c",
+    "03_event_master.png": "c9ed41c0df49ecb531f4660543bc9d01acf07ee14caa1b1c73226662a7cbc3a4",
+    "04_reason_master.png": "71fe64875ca4f453b6043731465b4cfca0a0e852bbe32b7f3d90dc54f60e9f13",
+    "05_data_master.png": "c3d763c2d08cf3a5600bad710f9a03f859087554ba6a68e26e2a0d51f4109f10",
+    "06_impact_master.png": "0c1bccb9411c26159d26c8e420edb2280b07e431a27b09832cc62d726ba17adb",
+    "07_cta_master.png": "8350ba615f682be465ea473b12a032ce2431aa804cab025b9d17bb6475cdd5b0"
+  },
+  "slots": {
+    "cover": {
+      "eyebrow": [
+        72,
+        202,
+        560,
+        246
+      ],
+      "headline": [
+        72,
+        280,
+        590,
+        520
+      ],
+      "subheadline": [
+        72,
+        570,
+        580,
+        660
+      ],
+      "visual": [
+        535,
+        215,
+        1045,
+        1065
+      ]
+    },
+    "summary": {
+      "headline": [
+        72,
+        230,
+        1008,
+        340
+      ],
+      "cards": [
+        [
+          72,
+          398,
+          1008,
+          566
+        ],
+        [
+          72,
+          598,
+          1008,
+          766
+        ],
+        [
+          72,
+          798,
+          1008,
+          966
+        ]
+      ]
+    },
+    "event": {
+      "headline": [
+        72,
+        230,
+        1008,
+        340
+      ],
+      "main": [
+        72,
+        396,
+        1008,
+        1000
+      ]
+    },
+    "reason": {
+      "headline": [
+        72,
+        230,
+        1008,
+        340
+      ],
+      "steps": [
+        [
+          72,
+          410,
+          1008,
+          558
+        ],
+        [
+          72,
+          600,
+          1008,
+          748
+        ],
+        [
+          72,
+          790,
+          1008,
+          938
+        ]
+      ]
+    },
+    "data": {
+      "headline": [
+        72,
+        230,
+        1008,
+        340
+      ],
+      "chart": [
+        72,
+        398,
+        1008,
+        1002
+      ]
+    },
+    "impact": {
+      "headline": [
+        72,
+        230,
+        1008,
+        340
+      ],
+      "cards": [
+        [
+          72,
+          395,
+          1008,
+          580
+        ],
+        [
+          72,
+          610,
+          1008,
+          795
+        ],
+        [
+          72,
+          825,
+          1008,
+          1010
+        ]
+      ]
+    },
+    "cta": {
+      "headline": [
+        72,
+        230,
+        1008,
+        340
+      ],
+      "checklist": [
+        72,
+        390,
+        1008,
+        820
+      ],
+      "cta": [
+        72,
+        858,
+        1008,
+        1018
+      ],
+      "sources": [
+        72,
+        1040,
+        1008,
+        1110
+      ]
+    }
+  },
+  "rules": [
+    "Never move, resize, recolor, regenerate, or replace fixed master elements for weekly posts.",
+    "Reuse the saved hero asset; do not generate a new cover layout.",
+    "Replace DATE and editable content only.",
+    "Render every Korean character, number, chart label, and source with the declared system fonts.",
+    "Use accent for text on dark backgrounds and accentInk for text or fills on light surfaces.",
+    "Rewrite overflowing copy instead of shrinking below the declared minimum sizes."
+  ]
+}

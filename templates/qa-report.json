@@ -1,0 +1,684 @@
+{
+  "brand": "FIN DINING by Finsight",
+  "generatedAtUtc": "2026-08-21T03:16:01.123947+00:00",
+  "passed": true,
+  "renderRounds": [
+    {
+      "round": 1,
+      "rendererExitCode": 0,
+      "stableAgainstRound1": true,
+      "stderr": ""
+    },
+    {
+      "round": 2,
+      "rendererExitCode": 0,
+      "stableAgainstRound1": true,
+      "stderr": ""
+    },
+    {
+      "round": 3,
+      "rendererExitCode": 0,
+      "stableAgainstRound1": true,
+      "stderr": ""
+    }
+  ],
+  "checks": [
+    {
+      "passed": true,
+      "name": "brand is current"
+    },
+    {
+      "passed": true,
+      "name": "manifest version is v4.1"
+    },
+    {
+      "passed": true,
+      "name": "adaptive mode is active"
+    },
+    {
+      "passed": true,
+      "name": "adaptive renderer is default"
+    },
+    {
+      "passed": true,
+      "name": "adaptive card range is 5-7"
+    },
+    {
+      "passed": true,
+      "name": "manifest contains Monday-Saturday in order"
+    },
+    {
+      "passed": true,
+      "name": "manifest contains exactly six templates"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy: brand matches"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy: canvas declaration"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy: font exists: NewYork.ttf"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy: font exists: AppleSDGothicNeo.ttc"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/1: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/1: RGB"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/1: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/2: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/2: RGB"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/2: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/3: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/3: RGB"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/3: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/4: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/4: RGB"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/4: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/5: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/5: RGB"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/5: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/6: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/6: RGB"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/6: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/7: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/7: RGB"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy/7: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "mon-policy: preview exists"
+    },
+    {
+      "passed": true,
+      "name": "tue-global: brand matches"
+    },
+    {
+      "passed": true,
+      "name": "tue-global: canvas declaration"
+    },
+    {
+      "passed": true,
+      "name": "tue-global: font exists: NewYork.ttf"
+    },
+    {
+      "passed": true,
+      "name": "tue-global: font exists: AppleSDGothicNeo.ttc"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/1: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/1: RGB"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/1: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/2: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/2: RGB"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/2: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/3: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/3: RGB"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/3: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/4: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/4: RGB"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/4: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/5: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/5: RGB"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/5: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/6: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/6: RGB"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/6: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/7: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/7: RGB"
+    },
+    {
+      "passed": true,
+      "name": "tue-global/7: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "tue-global: preview exists"
+    },
+    {
+      "passed": true,
+      "name": "wed-market: brand matches"
+    },
+    {
+      "passed": true,
+      "name": "wed-market: canvas declaration"
+    },
+    {
+      "passed": true,
+      "name": "wed-market: font exists: NewYork.ttf"
+    },
+    {
+      "passed": true,
+      "name": "wed-market: font exists: AppleSDGothicNeo.ttc"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/1: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/1: RGB"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/1: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/2: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/2: RGB"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/2: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/3: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/3: RGB"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/3: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/4: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/4: RGB"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/4: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/5: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/5: RGB"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/5: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/6: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/6: RGB"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/6: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/7: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/7: RGB"
+    },
+    {
+      "passed": true,
+      "name": "wed-market/7: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "wed-market: preview exists"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry: brand matches"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry: canvas declaration"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry: font exists: NewYork.ttf"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry: font exists: AppleSDGothicNeo.ttc"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/1: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/1: RGB"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/1: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/2: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/2: RGB"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/2: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/3: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/3: RGB"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/3: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/4: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/4: RGB"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/4: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/5: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/5: RGB"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/5: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/6: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/6: RGB"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/6: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/7: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/7: RGB"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry/7: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "thu-industry: preview exists"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly: brand matches"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly: canvas declaration"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly: font exists: NewYork.ttf"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly: font exists: AppleSDGothicNeo.ttc"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/1: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/1: RGB"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/1: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/2: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/2: RGB"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/2: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/3: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/3: RGB"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/3: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/4: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/4: RGB"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/4: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/5: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/5: RGB"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/5: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/6: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/6: RGB"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/6: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/7: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/7: RGB"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly/7: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "fri-weekly: preview exists"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview: brand matches"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview: canvas declaration"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview: font exists: NewYork.ttf"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview: font exists: AppleSDGothicNeo.ttc"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/1: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/1: RGB"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/1: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/2: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/2: RGB"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/2: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/3: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/3: RGB"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/3: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/4: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/4: RGB"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/4: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/5: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/5: RGB"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/5: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/6: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/6: RGB"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/6: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/7: 1080x1350"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/7: RGB"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview/7: SHA-256 matches layout"
+    },
+    {
+      "passed": true,
+      "name": "sat-preview: preview exists"
+    },
+    {
+      "passed": true,
+      "name": "3x2 weekly preview exists"
+    }
+  ],
+  "masterCount": 42
+}

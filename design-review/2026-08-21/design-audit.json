@@ -1,0 +1,144 @@
+{
+  "templateVersion": "3.0",
+  "round1System": {
+    "passed": true,
+    "paletteContrast": [
+      {
+        "day": "mon-policy",
+        "accentOnDark": 6.28,
+        "accentInkOnPaper": 5.69
+      },
+      {
+        "day": "tue-global",
+        "accentOnDark": 6.97,
+        "accentInkOnPaper": 5.2
+      },
+      {
+        "day": "wed-market",
+        "accentOnDark": 6.9,
+        "accentInkOnPaper": 4.88
+      },
+      {
+        "day": "thu-industry",
+        "accentOnDark": 9.0,
+        "accentInkOnPaper": 5.07
+      },
+      {
+        "day": "fri-weekly",
+        "accentOnDark": 6.29,
+        "accentInkOnPaper": 6.4
+      },
+      {
+        "day": "sat-preview",
+        "accentOnDark": 6.52,
+        "accentInkOnPaper": 6.41
+      }
+    ],
+    "typography": [
+      {
+        "day": "mon-policy",
+        "displayMin": 28,
+        "bodyMin": 30,
+        "legalMin": 24
+      },
+      {
+        "day": "tue-global",
+        "displayMin": 28,
+        "bodyMin": 30,
+        "legalMin": 24
+      },
+      {
+        "day": "wed-market",
+        "displayMin": 28,
+        "bodyMin": 30,
+        "legalMin": 24
+      },
+      {
+        "day": "thu-industry",
+        "displayMin": 28,
+        "bodyMin": 30,
+        "legalMin": 24
+      },
+      {
+        "day": "fri-weekly",
+        "displayMin": 28,
+        "bodyMin": 30,
+        "legalMin": 24
+      },
+      {
+        "day": "sat-preview",
+        "displayMin": 28,
+        "bodyMin": 30,
+        "legalMin": 24
+      }
+    ]
+  },
+  "round2ActualCards": {
+    "passed": true,
+    "images": [
+      {
+        "name": "2026-08-21_FRI_WEEKLY_01_cover.png",
+        "size": [
+          1080,
+          1350
+        ],
+        "mode": "RGB"
+      },
+      {
+        "name": "2026-08-21_FRI_WEEKLY_02_summary.png",
+        "size": [
+          1080,
+          1350
+        ],
+        "mode": "RGB"
+      },
+      {
+        "name": "2026-08-21_FRI_WEEKLY_03_event.png",
+        "size": [
+          1080,
+          1350
+        ],
+        "mode": "RGB"
+      },
+      {
+        "name": "2026-08-21_FRI_WEEKLY_04_reason.png",
+        "size": [
+          1080,
+          1350
+        ],
+        "mode": "RGB"
+      },
+      {
+        "name": "2026-08-21_FRI_WEEKLY_05_data.png",
+        "size": [
+          1080,
+          1350
+        ],
+        "mode": "RGB"
+      },
+      {
+        "name": "2026-08-21_FRI_WEEKLY_06_impact.png",
+        "size": [
+          1080,
+          1350
+        ],
+        "mode": "RGB"
+      },
+      {
+        "name": "2026-08-21_FRI_WEEKLY_07_cta.png",
+        "size": [
+          1080,
+          1350
+        ],
+        "mode": "RGB"
+      }
+    ]
+  },
+  "round3Mobile": {
+    "passed": true,
+    "simulationWidth": 390,
+    "preview": "mobile-390-preview.png",
+    "manualReview": "7 cards checked at feed-width scale; no clipping or hierarchy collapse detected."
+  },
+  "passed": true
+}
