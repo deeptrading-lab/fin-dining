@@ -49,7 +49,7 @@ ARCHETYPE_CAPACITY = {
     "timeline-cards": ("items", 3, 3),
     "causal-flow": ("items", 3, 3),
     "stacked-insights": ("items", 2, 4),
-    "featured-plus-grid": ("items", 3, 3),
+    "audience-rows": ("items", 3, 3),
     "range-dots": ("data_points", 2, 6),
     "line-chart": ("data_points", 2, 7),
     "rank-bars": ("data_points", 2, 6),
@@ -263,21 +263,40 @@ def draw_arrow(image: Image.Image, start, end, fill, width=3, head_length=26, he
     }
 
 
-def wrap_text(draw: ImageDraw.ImageDraw, value: str, font_obj, max_width: int, max_lines: int | None = None):
-    words = str(value).split()
-    if not words:
-        return ""
+def _pack_lines(draw: ImageDraw.ImageDraw, chunks, font_obj, max_width: int):
     lines, current = [], ""
-    for word in words:
-        trial = word if not current else f"{current} {word}"
+    for chunk in chunks:
+        trial = chunk if not current else f"{current} {chunk}"
         if draw.textbbox((0, 0), trial, font=font_obj)[2] <= max_width:
             current = trial
         else:
             if current:
                 lines.append(current)
-            current = word
+            current = chunk
     if current:
         lines.append(current)
+    return lines
+
+
+def wrap_text(draw: ImageDraw.ImageDraw, value: str, font_obj, max_width: int, max_lines: int | None = None):
+    """Wrap copy, breaking after a separator when the copy is a list of items.
+
+    `A · B · C` reads badly when the break lands mid-item and strands two
+    syllables on the second line. Breaking after the separator keeps each item
+    whole. Skipped when that would leave a stub line, so `기회 · <long>` does
+    not put `기회` alone on line one.
+    """
+    text = str(value)
+    if not text.split():
+        return ""
+    lines = _pack_lines(draw, text.split(), font_obj, max_width)
+    chunks = re.split(r"(?<=[·,])\s+", text)
+    if len(chunks) > 1:
+        by_item = _pack_lines(draw, chunks, font_obj, max_width)
+        stub = any(draw.textbbox((0, 0), line, font=font_obj)[2] < max_width * 0.4
+                   for line in by_item[:-1])
+        if len(by_item) <= len(lines) and not stub:
+            lines = by_item
     if max_lines and len(lines) > max_lines:
         raise ValueError(f"copy exceeds {max_lines} lines: {value}")
     return "\n".join(lines)
@@ -386,7 +405,7 @@ def make_plan(payload: dict) -> dict:
             variant = "calendar-grid" if dated_count >= 2 else "checklist-stack"
             reason = "dated items support a calendar grid" if dated_count >= 2 else "undated items need a checklist"
         elif isinstance(card.get("items", [None])[0], dict):
-            variant, reason = "featured-plus-grid", "one featured audience and two supporting audiences create hierarchy"
+            variant, reason = "audience-rows", "one row per audience keeps opportunity and risk comparable"
         elif card.get("section", "").upper() == "TASTING NOTES":
             numeric_density = sum(count_numbers(item) for item in card["items"])
             variant = "lead-plus-support" if numeric_density >= 3 else "editorial-list"
@@ -566,8 +585,9 @@ class AdaptiveRenderer:
                 paste_contain(image, Image.open(self.cfg["hero"]), (520, 235, 1040, 1080))
             self.draw_wrapped(draw, page, "eyebrow", (72, 244), card["eyebrow"], F_LABEL, self.cfg["accent"], 430, 2, (72, 230, 500, 300))
             self.draw_wrapped(draw, page, "cover_headline", (72, 318), card["headline"], F_COVER, IVORY, 500, 3, (72, 300, 560, 575), 10)
-            self.draw_wrapped(draw, page, "subheadline", (72, 605), card["subheadline"], F_BODY, MUTED, 455, 2, (72, 590, 530, 690))
-            draw.line((72, 720, 382, 720), fill=self.cfg["accent"], width=4)
+            bbox = self.draw_wrapped(draw, page, "subheadline", (72, 605), card["subheadline"], F_BODY, IVORY, 455, 2, (72, 590, 530, 690))
+            # Rule underlines the copy it emphasises, so it tracks its width
+            draw.line((72, bbox[3] + 34, bbox[2], bbox[3] + 34), fill=self.cfg["accent"], width=4)
         else:
             self.draw_wrapped(draw, page, "eyebrow", (72, 250), card["eyebrow"], F_LABEL, self.cfg["accent"], 850, 2, (72, 235, 1008, 300))
             self.draw_wrapped(draw, page, "cover_headline", (72, 335), card["headline"], F_COVER, IVORY, 900, 3, (72, 315, 1008, 610), 10)
@@ -606,7 +626,15 @@ class AdaptiveRenderer:
             self.register_block(f"event_badge_{index}", badge, collide=False)
             smooth_rounded(image, badge, 34, fill=self.cfg["accentInk"])
             draw_centered(draw, (box[0] - 14, y + 79), f"{index:02d}", F_LEGAL, PAPER)
-            self.draw_wrapped(draw, page, f"event_{index}", (box[0] + 52, y + 40), item, F_BODY, INK, box[2] - box[0] - 90, 3, (box[0] + 45, y + 24, box[2] - 25, y + 138), vcenter=True)
+            head, _, body = str(item).partition("·")
+            head, body = head.strip(), body.strip()
+            if body:
+                self.draw_wrapped(draw, page, f"event_when_{index}", (box[0] + 52, y + 32), head,
+                                  F_LABEL, self.cfg["accentInk"], box[2] - box[0] - 90, 1, (box[0] + 45, y + 22, box[2] - 25, y + 68))
+                self.draw_wrapped(draw, page, f"event_{index}", (box[0] + 52, y + 74), body,
+                                  F_BODY, INK, box[2] - box[0] - 90, 2, (box[0] + 45, y + 66, box[2] - 25, y + 148))
+            else:
+                self.draw_wrapped(draw, page, f"event_{index}", (box[0] + 52, y + 40), item, F_BODY, INK, box[2] - box[0] - 90, 3, (box[0] + 45, y + 24, box[2] - 25, y + 138), vcenter=True)
             if index < len(card["items"]):
                 draw.line((106, y + 113, 106, y + 243), fill=self.cfg["accent"], width=3)
 
@@ -656,6 +684,11 @@ class AdaptiveRenderer:
         # The value column sits at a fixed right edge; measure the widest number
         # and stop the track clear of it, so a max-value mark can never land on
         # its own label. record() cannot catch that: the mark is not a block.
+        # A chart alone does not say what to make of it; reserve a strip for the
+        # author's one-line reading when the card supplies one.
+        takeaway = card.get("takeaway")
+        chart_bottom, chart_height = 1010, 300
+        row_gap = min(82, (chart_bottom - 604) // max(1, len(points) - 1))
         value_right = 980
         value_left = value_right - max(
             draw.textbbox((0, 0), str(point["display"]), font=F_LABEL)[2] for point in points)
@@ -664,7 +697,7 @@ class AdaptiveRenderer:
         span = high - low or 1.0
         if variant == "range-dots":
             axis_left, axis_right = 310, track_right - 13  # keep the dot radius clear
-            top, row_gap = 550, 82
+            top = 550
             draw.line((axis_left, 525, axis_right, 525), fill=OUTLINE, width=3)
             draw.text((axis_left, 510), f"MIN {low:g}", font=F_LEGAL, fill=MUTED, anchor="ms")
             draw.text((axis_right, 510), f"MAX {high:g}", font=F_LEGAL, fill=MUTED, anchor="ms")
@@ -681,9 +714,9 @@ class AdaptiveRenderer:
             xs = [180 + i * (720 / (len(points) - 1)) for i in range(len(points))]
             plotted = []
             for x, point, value in zip(xs, points, values):
-                y = round(890 - ((value - low) / span) * 300)
+                y = round(chart_bottom - 120 - ((value - low) / span) * chart_height)
                 plotted.append((x, y))
-                draw.text((x, 925), point["label"], font=F_LABEL, fill=INK, anchor="ma")
+                draw.text((x, chart_bottom - 85), point["label"], font=F_LABEL, fill=INK, anchor="ma")
                 draw.text((x, y - 28), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ms")
             draw.line(plotted, fill=self.cfg["accentInk"], width=8, joint="curve")
             for x, y in plotted:
@@ -692,18 +725,48 @@ class AdaptiveRenderer:
             origin = axis_origin(low, span)
             reach = (high - origin) or 1.0
             axis_left, axis_right = 300, track_right
-            bottom = 550 + (len(points) - 1) * 82 + 42
+            bottom = 550 + (len(points) - 1) * row_gap + 42
             draw.line((axis_left, 525, axis_right, 525), fill=OUTLINE, width=3)
             draw.text((axis_left, 510), f"\uae30\uc900\uc120 {origin:g}", font=F_LEGAL, fill=MUTED, anchor="ls")
             draw.text((axis_right, 510), f"\ucd5c\ub300 {high:g}", font=F_LEGAL, fill=MUTED, anchor="rs")
             draw.line((axis_left, 540, axis_left, bottom + 12), fill=OUTLINE, width=2)
             for index, (point, value) in enumerate(zip(points, values)):
-                y = 550 + index * 82
+                y = 550 + index * row_gap
                 width = max(8, round((value - origin) / reach * (axis_right - axis_left)))
                 draw.text((122, y), point["label"], font=F_LABEL, fill=INK)
                 smooth_rounded(image, (axis_left, y, axis_left + width, y + 42), min(18, width // 2), fill=self.cfg["accentInk"])
                 draw.text((value_right, y + 3), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ra")
             self.audit["charts"].append({"page": page, "variant": variant, "axis_origin": origin, "axis_max": high, "zero_based": origin == 0})
+        if takeaway:
+            # Below the paper panel, not inside it: the reading is the author's
+            # voice, not part of the chart.
+            smooth_rounded(image, (72, 1052, 78, 1108), 3, fill=self.cfg["accent"])
+            self.draw_wrapped(draw, page, "data_takeaway", (102, 1058), takeaway,
+                              F_BODY, IVORY, 900, 1, (96, 1046, 1008, 1114))
+
+    def impact_row(self, image, draw, page, index, item, box):
+        """One audience per full-width row: rank, name, then two equal columns.
+
+        The old shape gave row one the full width and split rows two and three
+        in half, so the reader had to work out whether that meant importance or
+        just packing. Uniform rows carry the order in the rank badge instead.
+        """
+        x1, y1, x2, y2 = box
+        self.paper_card(image, box, 20, name=f"impact_card_{index}")
+        badge = (x1 + 26, y1 + 22, x1 + 78, y1 + 74)
+        smooth_ellipse(image, badge, fill=self.cfg["accentInk"])
+        draw_centered(draw, ((badge[0] + badge[2]) / 2, (badge[1] + badge[3]) / 2), f"{index:02d}", F_LEGAL, PAPER)
+        self.draw_wrapped(draw, page, f"impact_name_{index}", (x1 + 98, y1 + 26), item["name"],
+                          sans(36, "bold"), INK, x2 - x1 - 130, 1, (x1 + 90, y1 + 16, x2 - 22, y1 + 82))
+        mid = (x1 + x2) // 2
+        opp_box, risk_box = (x1 + 26, y1 + 92, mid - 8, y2 - 20), (mid + 8, y1 + 92, x2 - 26, y2 - 20)
+        smooth_rounded(image, opp_box, 16, fill=GREEN_BG)
+        smooth_rounded(image, risk_box, 16, fill=RED_BG)
+        for name, box_, label, colour in (("opp", opp_box, f'기회 · {item["opportunity"]}', GREEN),
+                                          ("risk", risk_box, f'리스크 · {item["risk"]}', RED)):
+            self.draw_wrapped(draw, page, f"impact_{name}_{index}", (box_[0] + 16, box_[1] + 14), label,
+                              F_SMALL, colour, box_[2] - box_[0] - 32, 2,
+                              (box_[0] + 12, box_[1] + 8, box_[2] - 12, box_[3] - 8), vcenter=True)
 
     def impact_content(self, image, draw, page, item, box, featured=False, name="impact_card"):
         x1, y1, x2, y2 = box
@@ -729,9 +792,9 @@ class AdaptiveRenderer:
 
     def draw_impact(self, image, draw, page, card, variant):
         items = card["items"]
-        self.impact_content(image, draw, page, items[0], (72, 400, 1008, 625), featured=True, name="impact_card_1")
-        self.impact_content(image, draw, page, items[1], (72, 660, 524, 1010), featured=False, name="impact_card_2")
-        self.impact_content(image, draw, page, items[2], (556, 660, 1008, 1010), featured=False, name="impact_card_3")
+        for index, item in enumerate(items, 1):
+            top = 400 + (index - 1) * 210
+            self.impact_row(image, draw, page, index, item, (72, top, 1008, top + 188))
 
     def draw_cta(self, image, draw, page, card, variant):
         if variant == "checklist-stack":
