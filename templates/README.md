@@ -20,12 +20,13 @@
 공통 파일:
 
 - `templates-manifest.json`: 6개 템플릿의 단일 기준
+- `render_adaptive_course.py`: v4.1 적응형 렌더러, 신규 일일 코스의 기본값
 - `render_master_templates.py`: 마스터를 새 버전으로 다시 만드는 원본 렌더러
-- `render_daily_course.py`: 구조화 원고를 고정 마스터에 합성하는 일일 렌더러
+- `render_daily_course.py`: 구조화 원고를 고정 마스터에 합성하는 v3 일일 렌더러
 - `verify_templates.py`: 3회 재렌더링·해시·크기·폰트 검수
 - `all-weekday-master-preview.png`: 월–토 표지 3×2 그리드
 
-일상적인 게시물 제작에서는 마스터 렌더러를 실행하지 않는다. `render_daily_course.py`에 `course-content.json`을 전달해 날짜·원고·데이터만 합성한다.
+일상적인 게시물 제작에서는 마스터 렌더러를 실행하지 않는다. 신규 일일 코스의 기본값은 `render_adaptive_course.py`(v4.1)이며, 이 폴더의 고정 마스터와 `render_daily_course.py`는 v3 결과 재현·회귀 비교에만 사용한다.
 
 현재 마스터 버전은 `v3`다. 다크 배경용 `accent`와 밝은 카드용 `accentInk`를 분리해 작은 글자도 WCAG AA 4.5:1 이상의 대비를 확보한다. 배경에는 결정론적 미세 질감을 넣고 카드 라운드와 그림자는 절제해 금융 에디토리얼 인상을 유지한다.
 
