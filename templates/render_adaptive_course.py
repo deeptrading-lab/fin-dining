@@ -508,6 +508,26 @@ class AdaptiveRenderer:
         self.record(page, name, bbox, container)
         return bbox
 
+    def draw_stack(self, draw, page, name, box, parts, gap=16):
+        """Draw stacked runs of copy centred as one block inside box.
+
+        A date line above its body has to be centred as a unit; centring each
+        run against the same container just stacks them on top of each other.
+        """
+        rendered, total = [], 0.0
+        for suffix, text, font_obj, fill, max_lines in parts:
+            lines = wrap_text(draw, text, font_obj, box[2] - box[0], max_lines)
+            ink = draw.multiline_textbbox((0, 0), lines, font=font_obj, spacing=8)
+            rendered.append((suffix, lines, font_obj, fill, ink))
+            total += ink[3] - ink[1]
+        total += gap * (len(rendered) - 1)
+        top = (box[1] + box[3]) / 2 - total / 2
+        for suffix, lines, font_obj, fill, ink in rendered:
+            height = ink[3] - ink[1]
+            draw.multiline_text((box[0], top - ink[1]), lines, font=font_obj, fill=fill, spacing=8)
+            self.record(page, f"{name}_{suffix}", (box[0] + ink[0], top, box[0] + ink[2], top + height), box)
+            top += height + gap
+
     def paper_card(self, image, box, radius=20, fill=PAPER, name=None):
         self.register_block(name or f'card_{len(self.audit["blocks"])}', box)
         x1, y1, x2, y2 = box
@@ -525,7 +545,12 @@ class AdaptiveRenderer:
         draw.text((72, 118), "by Finsight", font=F_LEGAL, fill=MUTED)
         draw.line((72, 151, 1008, 151), fill=GOLD, width=2)
         draw.text((72, 181), self.cfg["course"], font=F_PAGE, fill=self.cfg["accent"])
-        draw.text((1008, 181), self.cfg["label"], font=F_LEGAL, fill=IVORY, anchor="ra")
+        # layout label is `ENGLISH · 한글` saying the same thing twice; keep the
+        # English and spend the space on the period the course actually covers.
+        label = self.cfg["label"].split("·")[0].strip()
+        period = self.payload.get("period")
+        draw.text((1008, 181), f"{label} · {period}" if period else label,
+                  font=F_LEGAL, fill=IVORY, anchor="ra")
         draw.line((72, 1176, 1008, 1176), fill="#3B352E", width=2)
         draw.text((72, 1214), f'{self.payload["date"]} · KST', font=F_LEGAL, fill=MUTED)
         draw.text((1008, 1214), f"{page:02d} / {total:02d}", font=F_PAGE, fill=self.cfg["accent"], anchor="ra")
@@ -536,14 +561,25 @@ class AdaptiveRenderer:
         return image, draw
 
     def page_heading(self, draw, page, card):
-        draw.text((72, 235), card["section"], font=F_SECTION, fill=self.cfg["accent"])
+        """Optional eyebrow above the headline, then the headline.
+
+        The eyebrow is the card's actual subject, written by the author. A
+        generic role label (`숫자`, `결론`) only repeats what the headline
+        already says, so a card with nothing specific to add omits it and the
+        headline takes the space instead.
+        """
+        eyebrow = card.get("eyebrow")
+        if eyebrow:
+            self.draw_wrapped(draw, page, "eyebrow", (72, 244), eyebrow,
+                              F_LABEL, self.cfg["accent"], 900, 1, (72, 234, 1008, 278))
+        top = 282 if eyebrow else 246
         for title_font in (F_TITLE, sans(54, "bold"), sans(50, "bold")):
             try:
                 rendered = wrap_text(draw, card["headline"], title_font, 900, 2)
-                bbox = draw.multiline_textbbox((72, 282), rendered, font=title_font, spacing=8)
-                if bbox[3] <= 370:
-                    draw.multiline_text((72, 282), rendered, font=title_font, fill=IVORY, spacing=8)
-                    self.record(page, "headline", bbox, (72, 270, 1008, 380))
+                bbox = draw.multiline_textbbox((72, top), rendered, font=title_font, spacing=8)
+                if bbox[3] <= 378:
+                    draw.multiline_text((72, top), rendered, font=title_font, fill=IVORY, spacing=8)
+                    self.record(page, "headline", bbox, (72, top - 12, 1008, 384))
                     return
             except ValueError:
                 continue
@@ -599,8 +635,11 @@ class AdaptiveRenderer:
             lead = (72, 400, 1008, 625)
             self.register_block("summary_lead", lead)
             smooth_rounded(image, lead, 24, fill=self.cfg["accentInk"])
-            draw.text((108, 438), "01 · LEAD", font=F_SECTION, fill=self.cfg["accent2"])
-            self.draw_wrapped(draw, page, "summary_1", (108, 500), items[0], F_H2, PAPER, 820, 3, (100, 485, 970, 600), 9)
+            # Same number-left, copy-right structure as 02 and 03. The old
+            # `01 · LEAD` was serif English in accent2 on accentInk, which read
+            # as decoration at roughly 2:1 contrast.
+            draw.text((110, 445), "01", font=F_NUMBER, fill=PAPER)
+            self.draw_wrapped(draw, page, "summary_1", (200, 455), items[0], F_H2, PAPER, 730, 2, (190, 440, 970, 600), 9, vcenter=True)
             for index, (item, box) in enumerate(zip(items[1:], ((72, 660, 1008, 810), (72, 842, 1008, 992))), 2):
                 self.paper_card(image, box, 18, name=f"summary_card_{index}")
                 draw.text((110, box[1] + 45), f"0{index}", font=F_NUMBER, fill=self.cfg["accentInk"])
@@ -629,10 +668,9 @@ class AdaptiveRenderer:
             head, _, body = str(item).partition("·")
             head, body = head.strip(), body.strip()
             if body:
-                self.draw_wrapped(draw, page, f"event_when_{index}", (box[0] + 52, y + 32), head,
-                                  F_LABEL, self.cfg["accentInk"], box[2] - box[0] - 90, 1, (box[0] + 45, y + 22, box[2] - 25, y + 68))
-                self.draw_wrapped(draw, page, f"event_{index}", (box[0] + 52, y + 74), body,
-                                  F_BODY, INK, box[2] - box[0] - 90, 2, (box[0] + 45, y + 66, box[2] - 25, y + 148))
+                self.draw_stack(draw, page, f"event_{index}", (box[0] + 52, y + 16, box[2] - 25, y + 142),
+                                [("when", head, F_LABEL, self.cfg["accentInk"], 1),
+                                 ("body", body, F_BODY, INK, 2)])
             else:
                 self.draw_wrapped(draw, page, f"event_{index}", (box[0] + 52, y + 40), item, F_BODY, INK, box[2] - box[0] - 90, 3, (box[0] + 45, y + 24, box[2] - 25, y + 138), vcenter=True)
             if index < len(card["items"]):
