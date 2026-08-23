@@ -418,7 +418,7 @@ class AdaptiveRenderer:
         self.output_dir = output_dir
         self.cfg = runtime_config(payload["day_key"])
         self.current_page = 0
-        self.audit = {"version": "4.1", "records": [], "arrows": [], "blocks": [], "charts": [], "errors": [], "pages": []}
+        self.audit = {"version": "4.1", "records": [], "arrows": [], "blocks": [], "marks": [], "charts": [], "errors": [], "pages": []}
 
     def record(self, page: int, name: str, bbox, container):
         bbox = tuple(round(v) for v in bbox)
@@ -440,6 +440,24 @@ class AdaptiveRenderer:
         box = tuple(round(v) for v in box)
         self.audit["blocks"].append({"page": self.current_page, "name": name, "box": list(box), "collide": collide})
 
+    def register_mark(self, name: str, box):
+        """Track a foreground shape whose position comes from the data.
+
+        Fixed geometry is verified once by eye and then never moves. A chart
+        mark moves with every day's numbers, so it is the only thing that can
+        land on a label without anyone noticing.
+        """
+        box = tuple(round(v) for v in box)
+        self.audit["marks"].append({"page": self.current_page, "name": name, "box": list(box)})
+
+    def label(self, draw, page, name, xy, text, font_obj, fill, container, anchor=None):
+        """Draw a single-line label and record its real ink box."""
+        text = str(text)
+        box = draw.textbbox(xy, text, font=font_obj, anchor=anchor)
+        draw.text(xy, text, font=font_obj, fill=fill, anchor=anchor)
+        self.record(page, name, box, container)
+        return box
+
     def check_collisions(self, page: int):
         blocks = [item for item in self.audit["blocks"] if item["page"] == page]
         for item in blocks:
@@ -448,12 +466,26 @@ class AdaptiveRenderer:
                 self.audit["errors"].append(
                     f'page {page} block {item["name"]} breaks the safe area: {box} vs {list(SAFE_BOX)}'
                 )
+        def hits(a, b):
+            return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
         surfaces = [(item["name"], tuple(item["box"])) for item in blocks if item["collide"]]
         for index, (name_a, a) in enumerate(surfaces):
             for name_b, b in surfaces[index + 1:]:
-                if a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]:
+                if hits(a, b):
                     self.audit["errors"].append(
                         f"page {page} block {name_a} overlaps {name_b}: {list(a)} vs {list(b)}"
+                    )
+        # Data-driven marks must not land on any recorded text. Badge glyphs sit
+        # inside their mark on purpose, but those go through draw_centered and
+        # never reach records, so this needs no exception list.
+        marks = [item for item in self.audit["marks"] if item["page"] == page]
+        for text in (item for item in self.audit["records"] if item["page"] == page):
+            for mark in marks:
+                if hits(tuple(text["bbox"]), tuple(mark["box"])):
+                    self.audit["errors"].append(
+                        f'page {page} text {text["name"]} is covered by mark {mark["name"]}: '
+                        f'{text["bbox"]} vs {mark["box"]}'
                     )
 
     def draw_wrapped(self, draw, page, name, xy, value, font_obj, fill, max_width, max_lines, container, spacing=8, vcenter=False):
@@ -702,15 +734,17 @@ class AdaptiveRenderer:
             axis_left, axis_right = 310, track_right - 13  # keep the dot radius clear
             top = 550
             draw.line((axis_left, 525, axis_right, 525), fill=OUTLINE, width=3)
-            draw.text((axis_left, 510), f"MIN {low:g}", font=F_LEGAL, fill=MUTED, anchor="ms")
-            draw.text((axis_right, 510), f"MAX {high:g}", font=F_LEGAL, fill=MUTED, anchor="ms")
+            self.label(draw, page, "axis_min", (axis_left, 510), f"MIN {low:g}", F_LEGAL, MUTED, box, "ms")
+            self.label(draw, page, "axis_max", (axis_right, 510), f"MAX {high:g}", F_LEGAL, MUTED, box, "ms")
             for index, (point, value) in enumerate(zip(points, values)):
                 y = top + index * row_gap
                 x = axis_left + round((value - low) / span * (axis_right - axis_left))
-                draw.text((122, y), point["label"], font=F_LABEL, fill=INK)
+                self.label(draw, page, f"chart_label_{index}", (122, y), point["label"], F_LABEL, INK, box)
                 draw.line((axis_left, y + 20, axis_right, y + 20), fill="#E4DCCE", width=8)
-                smooth_ellipse(image, (x - 13, y + 7, x + 13, y + 33), fill=self.cfg["accentInk"])
-                draw.text((value_right, y), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ra")
+                dot = (x - 13, y + 7, x + 13, y + 33)
+                self.register_mark(f"dot_{index}", dot)
+                smooth_ellipse(image, dot, fill=self.cfg["accentInk"])
+                self.label(draw, page, f"chart_value_{index}", (value_right, y), point["display"], F_LABEL, self.cfg["accentInk"], box, "ra")
         elif variant == "line-chart":
             if len(points) < 2:
                 raise ValueError(f"line chart needs at least two points on page {page}")
@@ -719,26 +753,30 @@ class AdaptiveRenderer:
             for x, point, value in zip(xs, points, values):
                 y = round(chart_bottom - 120 - ((value - low) / span) * chart_height)
                 plotted.append((x, y))
-                draw.text((x, chart_bottom - 85), point["label"], font=F_LABEL, fill=INK, anchor="ma")
-                draw.text((x, y - 28), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ms")
+                self.label(draw, page, f"chart_label_{point['label']}", (x, chart_bottom - 85), point["label"], F_LABEL, INK, box, "ma")
+                self.label(draw, page, f"chart_value_{point['label']}", (x, y - 28), point["display"], F_LABEL, self.cfg["accentInk"], box, "ms")
             draw.line(plotted, fill=self.cfg["accentInk"], width=8, joint="curve")
-            for x, y in plotted:
-                smooth_ellipse(image, (x - 10, y - 10, x + 10, y + 10), fill=self.cfg["accent2"])
+            for index, (x, y) in enumerate(plotted):
+                node = (x - 10, y - 10, x + 10, y + 10)
+                self.register_mark(f"node_{index}", node)
+                smooth_ellipse(image, node, fill=self.cfg["accent2"])
         else:
             origin = axis_origin(low, span)
             reach = (high - origin) or 1.0
             axis_left, axis_right = 300, track_right
             bottom = 550 + (len(points) - 1) * row_gap + 42
             draw.line((axis_left, 525, axis_right, 525), fill=OUTLINE, width=3)
-            draw.text((axis_left, 510), f"\uae30\uc900\uc120 {origin:g}", font=F_LEGAL, fill=MUTED, anchor="ls")
-            draw.text((axis_right, 510), f"\ucd5c\ub300 {high:g}", font=F_LEGAL, fill=MUTED, anchor="rs")
+            self.label(draw, page, "axis_origin", (axis_left, 510), f"\uae30\uc900\uc120 {origin:g}", F_LEGAL, MUTED, box, "ls")
+            self.label(draw, page, "axis_max", (axis_right, 510), f"\ucd5c\ub300 {high:g}", F_LEGAL, MUTED, box, "rs")
             draw.line((axis_left, 540, axis_left, bottom + 12), fill=OUTLINE, width=2)
             for index, (point, value) in enumerate(zip(points, values)):
                 y = 550 + index * row_gap
                 width = max(8, round((value - origin) / reach * (axis_right - axis_left)))
-                draw.text((122, y), point["label"], font=F_LABEL, fill=INK)
-                smooth_rounded(image, (axis_left, y, axis_left + width, y + 42), min(18, width // 2), fill=self.cfg["accentInk"])
-                draw.text((value_right, y + 3), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ra")
+                self.label(draw, page, f"chart_label_{index}", (122, y), point["label"], F_LABEL, INK, box)
+                bar = (axis_left, y, axis_left + width, y + 42)
+                self.register_mark(f"bar_{index}", bar)
+                smooth_rounded(image, bar, min(18, width // 2), fill=self.cfg["accentInk"])
+                self.label(draw, page, f"chart_value_{index}", (value_right, y + 3), point["display"], F_LABEL, self.cfg["accentInk"], box, "ra")
             self.audit["charts"].append({"page": page, "variant": variant, "axis_origin": origin, "axis_max": high, "zero_based": origin == 0})
         if takeaway:
             # Below the paper panel, not inside it: the reading is the author's

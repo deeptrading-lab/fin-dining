@@ -275,6 +275,7 @@ v3 렌더러와 고정 마스터는 과거 결과 재현 또는 회귀 비교에
 
 - 아키타입마다 그릴 수 있는 블록 수가 정해져 있다. 원고 항목이 더 많으면 이전에는 조용히 버려졌고, 더 적으면 `IndexError`로 죽었다. 이제 `make_plan()`이 렌더 전에 모든 위반을 한 번에 보고한다. `timeline-cards`·`causal-flow`·`audience-rows`·`lead-plus-support`는 3개, `calendar-grid`는 4개, `checklist-stack`은 3~4개, `editorial-list`·`stacked-insights`는 2~4개, 데이터 포인트는 2~6개이며 `line-chart`만 2~7개다.
 - 막대 차트는 절단축을 쓰더라도 축 시작점을 읽기 좋은 수로 내림 정렬해 `기준선 N`과 `최대 N`을 카드에 인쇄한다. 값이 자연스럽게 벌어져 있으면 기준선이 0으로 스냅되어 0기준 막대가 된다. 기준선과 최대값은 `layout-audit.json`의 `charts`에 기록된다.
+- 데이터로 위치가 정해지는 차트 점·막대는 `marks`에 등록되고 기록된 모든 텍스트와 교차 검사한다. 고정 좌표는 한 번 눈으로 확인하면 매일 같지만 차트 마크는 그날 숫자에 따라 움직여, 값이 최대에 가까우면 자기 레이블 위에 올라앉을 수 있다.
 - 그려진 모든 면은 `layout-audit.json`의 `blocks`에 등록된다. 두 면이 겹치거나 안전영역 `(72, 220, 1008, 1176)`을 벗어나면 렌더가 실패한다. 텍스트가 자기 상자 안에 있다는 것만으로 PASS 처리하지 않는다.
 - 타임라인 번호 배지처럼 카드 밖으로 걸치도록 설계된 표식도 안전 여백 검사를 받는다.
 
@@ -395,6 +396,7 @@ python3 templates/render_adaptive_course.py \
 - `layout-audit.json`의 모든 텍스트 바운딩 박스가 컨테이너 안에 있고 `passed: true`인가
 - `make_plan()`의 아키타입 수용 개수 검사를 위반 없이 통과했는가
 - `layout-audit.json`의 `blocks`가 서로 겹치지 않고 안전영역 안에 있는가
+- `layout-audit.json`의 `marks`에 차트 점·막대가 등록되고, 기록된 어떤 텍스트도 마크에 덮이지 않는가
 - `layout-audit.json`의 `charts`에 막대 차트의 기준선과 최대값이 기록됐는가
 - 표지에 `visual`을 쓴 경우 레일의 날짜와 레이블이 `records`에 기록되고 컨테이너 안에 있는가
 - 파일명과 카드 순서가 올바른가
