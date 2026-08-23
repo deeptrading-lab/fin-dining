@@ -40,6 +40,27 @@ OUTLINE = "#D7CBB8"
 
 PAGE_NAMES = ["cover", "summary", "event", "reason", "data", "impact", "cta"]
 
+# Every approved archetype paints a fixed number of blocks. Content above the
+# capacity used to be dropped by zip(); content below it raised a bare
+# IndexError. Both are reported by make_plan before a pixel is rendered.
+ARCHETYPE_CAPACITY = {
+    "lead-plus-support": ("items", 3, 3),
+    "editorial-list": ("items", 2, 4),
+    "timeline-cards": ("items", 3, 3),
+    "causal-flow": ("items", 3, 3),
+    "stacked-insights": ("items", 2, 4),
+    "featured-plus-grid": ("items", 3, 3),
+    "range-dots": ("data_points", 2, 6),
+    "line-chart": ("data_points", 2, 7),
+    "rank-bars": ("data_points", 2, 6),
+    "calendar-grid": ("checklist", 4, 4),
+    "checklist-stack": ("checklist", 3, 4),
+}
+
+# Editorial surfaces live between the course rule and the footer rule, inside
+# the 72px safe margin. Nothing painted may leave this box.
+SAFE_BOX = (72, 220, 1008, 1176)
+
 CONFIGS = {
     "mon-policy": {
         "course": "COURSE 01", "label": "POLICY · 정책",
@@ -177,6 +198,21 @@ def contains_date(value: str) -> bool:
     return bool(re.search(r"\d{1,2}월|\d{1,2}/\d{1,2}|\d{4}-\d{2}-\d{2}|매일", value))
 
 
+def axis_origin(low: float, span: float) -> float:
+    """Baseline for rank bars, snapped to a readable number and always labelled.
+
+    Bars keep a truncated axis so index-like series stay legible, but the start
+    is rounded down to a clean step and printed on the card, so bar length can
+    no longer be misread as a value ratio.
+    """
+    raw = low - span * 0.15
+    step = 10 ** math.floor(math.log10(span))
+    origin = math.floor(raw / step) * step
+    if low >= 0:
+        origin = max(0.0, origin)
+    return round(origin, 6)
+
+
 def runtime_config(day_key: str) -> dict:
     """Read brand tokens from the existing weekday layout source of truth."""
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
@@ -250,6 +286,21 @@ def make_plan(payload: dict) -> dict:
         else:
             variant, reason = "stacked-insights", "independent facts support stacked insight cards"
         planned.append({"page": index + 1, "section": card.get("section", "COVER"), "variant": variant, "reason": reason})
+    problems = []
+    for card, choice in zip(cards, planned):
+        capacity = ARCHETYPE_CAPACITY.get(choice["variant"])
+        if capacity is None:
+            continue
+        key, low, high = capacity
+        count = len(card.get(key, []))
+        if not low <= count <= high:
+            want = str(low) if low == high else f"{low}-{high}"
+            problems.append(
+                f'page {choice["page"]} ({choice["section"]}) {choice["variant"]} '
+                f"holds {want} {key}, got {count}"
+            )
+    if problems:
+        raise ValueError("card content does not fit the selected archetypes:\n" + "\n".join(problems))
     return {
         "version": "4.1",
         "date": payload["date"],
@@ -270,7 +321,8 @@ class AdaptiveRenderer:
         self.plan = plan
         self.output_dir = output_dir
         self.cfg = runtime_config(payload["day_key"])
-        self.audit = {"version": "4.1", "records": [], "arrows": [], "errors": [], "pages": []}
+        self.current_page = 0
+        self.audit = {"version": "4.1", "records": [], "arrows": [], "blocks": [], "charts": [], "errors": [], "pages": []}
 
     def record(self, page: int, name: str, bbox, container):
         bbox = tuple(round(v) for v in bbox)
@@ -280,6 +332,34 @@ class AdaptiveRenderer:
         if not inside:
             self.audit["errors"].append(f"page {page} {name} outside container: {bbox} vs {container}")
 
+    def register_block(self, name: str, box, collide: bool = True):
+        """Track a painted surface so blocks drawn on top of each other fail.
+
+        record() only proves a text run sits inside the box it was handed. It
+        cannot see a later card painted over an earlier one, or a surface that
+        grew past the safe area. Marks that deliberately hang over their own
+        card pass collide=False: their margins are still checked, but they are
+        excluded from the pairwise test.
+        """
+        box = tuple(round(v) for v in box)
+        self.audit["blocks"].append({"page": self.current_page, "name": name, "box": list(box), "collide": collide})
+
+    def check_collisions(self, page: int):
+        blocks = [item for item in self.audit["blocks"] if item["page"] == page]
+        for item in blocks:
+            box = item["box"]
+            if not (box[0] >= SAFE_BOX[0] and box[1] >= SAFE_BOX[1] and box[2] <= SAFE_BOX[2] and box[3] <= SAFE_BOX[3]):
+                self.audit["errors"].append(
+                    f'page {page} block {item["name"]} breaks the safe area: {box} vs {list(SAFE_BOX)}'
+                )
+        surfaces = [(item["name"], tuple(item["box"])) for item in blocks if item["collide"]]
+        for index, (name_a, a) in enumerate(surfaces):
+            for name_b, b in surfaces[index + 1:]:
+                if a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]:
+                    self.audit["errors"].append(
+                        f"page {page} block {name_a} overlaps {name_b}: {list(a)} vs {list(b)}"
+                    )
+
     def draw_wrapped(self, draw, page, name, xy, value, font_obj, fill, max_width, max_lines, container, spacing=8):
         rendered = wrap_text(draw, value, font_obj, max_width, max_lines)
         draw.multiline_text(xy, rendered, font=font_obj, fill=fill, spacing=spacing)
@@ -287,7 +367,8 @@ class AdaptiveRenderer:
         self.record(page, name, bbox, container)
         return bbox
 
-    def paper_card(self, image, box, radius=20, fill=PAPER):
+    def paper_card(self, image, box, radius=20, fill=PAPER, name=None):
+        self.register_block(name or f'card_{len(self.audit["blocks"])}', box)
         x1, y1, x2, y2 = box
         shadow = Image.new("RGBA", image.size, (0, 0, 0, 0))
         sd = ImageDraw.Draw(shadow)
@@ -345,11 +426,12 @@ class AdaptiveRenderer:
         items = card["items"]
         if variant == "lead-plus-support":
             lead = (72, 400, 1008, 625)
+            self.register_block("summary_lead", lead)
             draw.rounded_rectangle(lead, radius=24, fill=self.cfg["accentInk"])
             draw.text((108, 438), "01 · LEAD", font=F_SECTION, fill=self.cfg["accent2"])
             self.draw_wrapped(draw, page, "summary_1", (108, 500), items[0], F_H2, PAPER, 820, 3, (100, 485, 970, 600), 9)
             for index, (item, box) in enumerate(zip(items[1:], ((72, 660, 1008, 810), (72, 842, 1008, 992))), 2):
-                self.paper_card(image, box, 18)
+                self.paper_card(image, box, 18, name=f"summary_card_{index}")
                 draw.text((110, box[1] + 45), f"0{index}", font=F_NUMBER, fill=self.cfg["accentInk"])
                 self.draw_wrapped(draw, page, f"summary_{index}", (200, box[1] + 43), item, F_BODY, INK, 750, 3, (190, box[1] + 25, 970, box[3] - 20))
         else:
@@ -359,7 +441,7 @@ class AdaptiveRenderer:
             y = 405
             for index, (item, height) in enumerate(zip(items, heights), 1):
                 box = (72, y, 1008, y + height)
-                self.paper_card(image, box, 18)
+                self.paper_card(image, box, 18, name=f"summary_card_{index}")
                 draw.text((110, y + 42), f"0{index}", font=F_NUMBER, fill=self.cfg["accentInk"])
                 self.draw_wrapped(draw, page, f"summary_{index}", (200, y + 40), item, F_BODY, INK, 750, 3, (190, y + 20, 970, y + height - 20))
                 y += height + gap
@@ -367,9 +449,11 @@ class AdaptiveRenderer:
     def draw_event(self, image, draw, page, card, variant):
         y_positions = (412, 610, 808)
         for index, (item, y) in enumerate(zip(card["items"], y_positions), 1):
-            box = (120 if index % 2 else 72, y, 1008 if index % 2 else 960, y + 158)
-            self.paper_card(image, box, 18)
-            draw.rounded_rectangle((box[0] - 48, y + 45, box[0] + 20, y + 113), radius=34, fill=self.cfg["accentInk"])
+            box = (168 if index % 2 else 120, y, 1008 if index % 2 else 960, y + 158)
+            badge = (box[0] - 48, y + 45, box[0] + 20, y + 113)
+            self.paper_card(image, box, 18, name=f"event_card_{index}")
+            self.register_block(f"event_badge_{index}", badge, collide=False)
+            draw.rounded_rectangle(badge, radius=34, fill=self.cfg["accentInk"])
             draw.text((box[0] - 14, y + 79), f"{index:02d}", font=F_LEGAL, fill=PAPER, anchor="mm")
             self.draw_wrapped(draw, page, f"event_{index}", (box[0] + 52, y + 40), item, F_BODY, INK, box[2] - box[0] - 90, 3, (box[0] + 45, y + 24, box[2] - 25, y + 138))
             if index < 3:
@@ -386,7 +470,7 @@ class AdaptiveRenderer:
         y = 410
         for index, item in enumerate(items, 1):
             box = (72, y, 1008, y + height)
-            self.paper_card(image, box, 18)
+            self.paper_card(image, box, 18, name=f"insight_card_{index}")
             draw.text((110, y + 39), f"{index:02d}", font=F_NUMBER, fill=self.cfg["accentInk"])
             self.draw_wrapped(draw, page, f"insight_{index}", (200, y + 38), item, F_BODY, INK, 750, 3, (190, y + 20, 970, y + height - 20))
             y += height + gap
@@ -394,7 +478,7 @@ class AdaptiveRenderer:
     def draw_reason(self, image, draw, page, card, variant):
         nodes = [(72, 410, 870, 555), (210, 620, 1008, 765), (72, 830, 870, 975)]
         for index, (item, box) in enumerate(zip(card["items"], nodes), 1):
-            self.paper_card(image, box, 18)
+            self.paper_card(image, box, 18, name=f"reason_card_{index}")
             draw.ellipse((box[0] + 28, box[1] + 43, box[0] + 88, box[1] + 103), fill=self.cfg["accentInk"])
             draw.text((box[0] + 58, box[1] + 73), str(index), font=F_LABEL, fill=PAPER, anchor="mm")
             self.draw_wrapped(draw, page, f"reason_{index}", (box[0] + 120, box[1] + 38), item, F_BODY, INK, box[2] - box[0] - 155, 3, (box[0] + 110, box[1] + 22, box[2] - 24, box[3] - 20))
@@ -417,7 +501,7 @@ class AdaptiveRenderer:
 
     def draw_data(self, image, draw, page, card, variant):
         box = (72, 400, 1008, 1010)
-        self.paper_card(image, box, 20)
+        self.paper_card(image, box, 20, name="data_panel")
         self.draw_wrapped(draw, page, "data_note", (112, 438), card["note"], F_BODY, INK, 830, 2, (100, 420, 980, 500))
         points = card["data_points"]
         values = [float(point["value"]) for point in points]
@@ -450,16 +534,25 @@ class AdaptiveRenderer:
             for x, y in plotted:
                 draw.ellipse((x - 10, y - 10, x + 10, y + 10), fill=self.cfg["accent2"])
         else:
+            origin = axis_origin(low, span)
+            reach = (high - origin) or 1.0
+            axis_left, axis_right = 300, 900
+            bottom = 550 + (len(points) - 1) * 82 + 42
+            draw.line((axis_left, 525, axis_right, 525), fill=OUTLINE, width=3)
+            draw.text((axis_left, 510), f"\uae30\uc900\uc120 {origin:g}", font=F_LEGAL, fill=MUTED, anchor="ls")
+            draw.text((axis_right, 510), f"\ucd5c\ub300 {high:g}", font=F_LEGAL, fill=MUTED, anchor="rs")
+            draw.line((axis_left, 540, axis_left, bottom + 12), fill=OUTLINE, width=2)
             for index, (point, value) in enumerate(zip(points, values)):
                 y = 550 + index * 82
-                width = round((value - low + span * 0.15) / (span * 1.15) * 600)
+                width = max(8, round((value - origin) / reach * 600))
                 draw.text((122, y), point["label"], font=F_LABEL, fill=INK)
-                draw.rounded_rectangle((300, y, 300 + width, y + 42), radius=18, fill=self.cfg["accentInk"])
+                draw.rounded_rectangle((axis_left, y, axis_left + width, y + 42), radius=min(18, width // 2), fill=self.cfg["accentInk"])
                 draw.text((940, y + 3), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ra")
+            self.audit["charts"].append({"page": page, "variant": variant, "axis_origin": origin, "axis_max": high, "zero_based": origin == 0})
 
-    def impact_content(self, image, draw, page, item, box, featured=False):
+    def impact_content(self, image, draw, page, item, box, featured=False, name="impact_card"):
         x1, y1, x2, y2 = box
-        self.paper_card(image, box, 20)
+        self.paper_card(image, box, 20, name=name)
         draw.ellipse((x1 + 26, y1 + 26, x1 + 76, y1 + 76), fill=self.cfg["accentInk"])
         draw.text((x1 + 51, y1 + 51), "●", font=F_LEGAL, fill=PAPER, anchor="mm")
         title_font = F_H2 if featured else sans(34, "bold")
@@ -481,21 +574,22 @@ class AdaptiveRenderer:
 
     def draw_impact(self, image, draw, page, card, variant):
         items = card["items"]
-        self.impact_content(image, draw, page, items[0], (72, 400, 1008, 625), featured=True)
-        self.impact_content(image, draw, page, items[1], (72, 660, 524, 1010), featured=False)
-        self.impact_content(image, draw, page, items[2], (556, 660, 1008, 1010), featured=False)
+        self.impact_content(image, draw, page, items[0], (72, 400, 1008, 625), featured=True, name="impact_card_1")
+        self.impact_content(image, draw, page, items[1], (72, 660, 524, 1010), featured=False, name="impact_card_2")
+        self.impact_content(image, draw, page, items[2], (556, 660, 1008, 1010), featured=False, name="impact_card_3")
 
     def draw_cta(self, image, draw, page, card, variant):
         if variant == "checklist-stack":
             y = 405
             for index, item in enumerate(card["checklist"], 1):
                 box = (72, y, 1008, y + 120)
-                self.paper_card(image, box, 18)
+                self.paper_card(image, box, 18, name=f"cta_card_{index}")
                 draw.ellipse((98, y + 34, 150, y + 86), fill=self.cfg["accentInk"])
                 draw.text((124, y + 60), "✓", font=F_LABEL, fill=PAPER, anchor="mm")
                 self.draw_wrapped(draw, page, f"cta_item_{index}", (178, y + 36), item, F_SMALL, INK, 785, 2, (170, y + 20, 980, y + 100))
                 y += 140
             cta_box = (72, 985, 1008, 1085)
+            self.register_block("cta_banner", cta_box)
             draw.rounded_rectangle(cta_box, radius=22, fill=self.cfg["accentInk"])
             rendered = wrap_text(draw, card["cta"], F_BODY, 820, 2)
             bbox = draw.multiline_textbbox((540, 1035), rendered, font=F_BODY, anchor="mm", align="center", spacing=8)
@@ -506,7 +600,7 @@ class AdaptiveRenderer:
             return
         boxes = [(72, 405, 524, 600), (556, 405, 1008, 600), (72, 630, 524, 825), (556, 630, 1008, 825)]
         for index, (item, box) in enumerate(zip(card["checklist"], boxes), 1):
-            self.paper_card(image, box, 18)
+            self.paper_card(image, box, 18, name=f"cta_card_{index}")
             parts = [part.strip() for part in item.split("·", 1)]
             date = parts[0]
             detail = parts[1] if len(parts) > 1 else item
@@ -514,6 +608,7 @@ class AdaptiveRenderer:
             draw.text((box[0] + 99, box[1] + 48), date, font=F_LEGAL, fill=PAPER, anchor="mm")
             self.draw_wrapped(draw, page, f"cta_item_{index}", (box[0] + 24, box[1] + 94), detail, F_SMALL, INK, box[2] - box[0] - 48, 3, (box[0] + 20, box[1] + 84, box[2] - 20, box[3] - 18))
         cta_box = (72, 862, 1008, 984)
+        self.register_block("cta_banner", cta_box)
         draw.rounded_rectangle(cta_box, radius=22, fill=self.cfg["accentInk"])
         rendered = wrap_text(draw, card["cta"], F_BODY, 820, 2)
         bbox = draw.multiline_textbbox((540, 924), rendered, font=F_BODY, anchor="mm", align="center", spacing=8)
@@ -527,6 +622,7 @@ class AdaptiveRenderer:
         outputs = []
         total = len(self.payload["cards"])
         for index, (card, choice) in enumerate(zip(self.payload["cards"], self.plan["cards"]), 1):
+            self.current_page = index
             image, draw = self.base(index, total)
             if index == 1:
                 self.draw_cover(image, draw, index, card, choice["variant"])
@@ -546,6 +642,7 @@ class AdaptiveRenderer:
                     self.draw_reason(image, draw, index, card, choice["variant"])
                 else:
                     self.draw_stacked(image, draw, index, card)
+            self.check_collisions(index)
             filename = f'{self.payload["date"]}_{self.payload["day_key"].upper().replace("-", "_")}_V4_{index:02d}_{page_slug(card, index - 1)}.png'
             path = self.output_dir / filename
             image.convert("RGB").save(path, "PNG", optimize=True)
