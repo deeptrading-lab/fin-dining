@@ -38,6 +38,10 @@
       "checklist-stack"
     ]
   },
+  "coverVisual": [
+    "hero-asset",
+    "date-rail"
+  ],
   "canvas": [
     1080,
     1350
