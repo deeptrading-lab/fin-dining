@@ -140,7 +140,38 @@ def paste_contain(background: Image.Image, foreground: Image.Image, box):
     background.alpha_composite(item, (x, y))
 
 
-ARROW_SS = 4  # supersample factor; Pillow draws diagonals without antialiasing
+SHAPE_SS = 4  # supersample factor; Pillow antialiases neither curves nor diagonals
+
+
+def _smooth(image: Image.Image, box, paint):
+    """Render one shape on a supersampled tile and composite it down.
+
+    Pillow's ellipse and rounded_rectangle step their curved edges, which is
+    plainly visible on a 68px badge. Only the shape's own bounding box is
+    supersampled, so this costs a small transient tile rather than a 4x canvas.
+    """
+    pad = 2
+    x0, y0 = math.floor(box[0]) - pad, math.floor(box[1]) - pad
+    x1, y1 = math.ceil(box[2]) + pad + 1, math.ceil(box[3]) + pad + 1
+    tile = Image.new("RGBA", ((x1 - x0) * SHAPE_SS, (y1 - y0) * SHAPE_SS), (0, 0, 0, 0))
+    paint(ImageDraw.Draw(tile), (
+        (box[0] - x0) * SHAPE_SS, (box[1] - y0) * SHAPE_SS,
+        (box[2] - x0) * SHAPE_SS, (box[3] - y0) * SHAPE_SS,
+    ))
+    image.alpha_composite(tile.resize((x1 - x0, y1 - y0), Image.Resampling.LANCZOS), (x0, y0))
+
+
+def smooth_ellipse(image: Image.Image, box, fill=None, outline=None, width=1):
+    _smooth(image, box, lambda pen, scaled: pen.ellipse(
+        scaled, fill=fill, outline=outline, width=width * SHAPE_SS))
+
+
+def smooth_rounded(image: Image.Image, box, radius, fill=None, outline=None, width=1):
+    _smooth(image, box, lambda pen, scaled: pen.rounded_rectangle(
+        scaled, radius=radius * SHAPE_SS, fill=fill, outline=outline, width=width * SHAPE_SS))
+
+
+ARROW_SS = SHAPE_SS
 ARROW_STEPS = 72  # bezier samples
 
 
@@ -465,7 +496,7 @@ class AdaptiveRenderer:
         sd = ImageDraw.Draw(shadow)
         sd.rounded_rectangle((x1, y1 + 8, x2, y2 + 8), radius=radius, fill=(0, 0, 0, 58))
         image.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(14)))
-        ImageDraw.Draw(image).rounded_rectangle(box, radius=radius, fill=fill, outline=OUTLINE, width=1)
+        smooth_rounded(image, box, radius, fill=fill, outline=OUTLINE, width=1)
 
     def base(self, page: int, total: int):
         image = Image.new("RGBA", (W, H), BG)
@@ -499,7 +530,7 @@ class AdaptiveRenderer:
                 continue
         raise ValueError(f"headline cannot fit page {page}: {card['headline']}")
 
-    def draw_date_rail(self, draw, page, points):
+    def draw_date_rail(self, image, draw, page, points):
         """Cover visual drawn from the deck's own dates.
 
         The weekday hero asset is fixed, so it says nothing about the day's
@@ -518,9 +549,9 @@ class AdaptiveRenderer:
             focus = bool(point.get("focus"))
             radius = 15 if focus else 9
             if focus:
-                draw.ellipse((rail_x - 27, y - 27, rail_x + 27, y + 27), outline=self.cfg["accent2"], width=2)
-            draw.ellipse((rail_x - radius, y - radius, rail_x + radius, y + radius),
-                         fill=self.cfg["accent"] if focus else MUTED)
+                smooth_ellipse(image, (rail_x - 27, y - 27, rail_x + 27, y + 27), outline=self.cfg["accent2"], width=2)
+            smooth_ellipse(image, (rail_x - radius, y - radius, rail_x + radius, y + radius),
+                           fill=self.cfg["accent"] if focus else MUTED)
             self.draw_wrapped(draw, page, f"rail_date_{index}", (rail_x + 52, y - 40), point["date"],
                               serif(42), self.cfg["accent"] if focus else IVORY, 330, 1, (rail_x + 45, y - 54, 1008, y + 16))
             self.draw_wrapped(draw, page, f"rail_label_{index}", (rail_x + 52, y + 18), point["label"],
@@ -529,9 +560,9 @@ class AdaptiveRenderer:
     def draw_cover(self, image, draw, page, card, variant):
         if variant == "split-hero":
             if "visual" in card:
-                self.draw_date_rail(draw, page, card["visual"]["points"])
+                self.draw_date_rail(image, draw, page, card["visual"]["points"])
             else:
-                draw.ellipse((615, 270, 1015, 670), fill="#1D1A17", outline="#4A4138", width=2)
+                smooth_ellipse(image, (615, 270, 1015, 670), fill="#1D1A17", outline="#4A4138", width=2)
                 paste_contain(image, Image.open(self.cfg["hero"]), (520, 235, 1040, 1080))
             self.draw_wrapped(draw, page, "eyebrow", (72, 244), card["eyebrow"], F_LABEL, self.cfg["accent"], 430, 2, (72, 230, 500, 300))
             self.draw_wrapped(draw, page, "cover_headline", (72, 318), card["headline"], F_COVER, IVORY, 500, 3, (72, 300, 560, 575), 10)
@@ -547,7 +578,7 @@ class AdaptiveRenderer:
         if variant == "lead-plus-support":
             lead = (72, 400, 1008, 625)
             self.register_block("summary_lead", lead)
-            draw.rounded_rectangle(lead, radius=24, fill=self.cfg["accentInk"])
+            smooth_rounded(image, lead, 24, fill=self.cfg["accentInk"])
             draw.text((108, 438), "01 · LEAD", font=F_SECTION, fill=self.cfg["accent2"])
             self.draw_wrapped(draw, page, "summary_1", (108, 500), items[0], F_H2, PAPER, 820, 3, (100, 485, 970, 600), 9)
             for index, (item, box) in enumerate(zip(items[1:], ((72, 660, 1008, 810), (72, 842, 1008, 992))), 2):
@@ -573,7 +604,7 @@ class AdaptiveRenderer:
             badge = (box[0] - 48, y + 45, box[0] + 20, y + 113)
             self.paper_card(image, box, 18, name=f"event_card_{index}")
             self.register_block(f"event_badge_{index}", badge, collide=False)
-            draw.rounded_rectangle(badge, radius=34, fill=self.cfg["accentInk"])
+            smooth_rounded(image, badge, 34, fill=self.cfg["accentInk"])
             draw_centered(draw, (box[0] - 14, y + 79), f"{index:02d}", F_LEGAL, PAPER)
             self.draw_wrapped(draw, page, f"event_{index}", (box[0] + 52, y + 40), item, F_BODY, INK, box[2] - box[0] - 90, 3, (box[0] + 45, y + 24, box[2] - 25, y + 138), vcenter=True)
             if index < len(card["items"]):
@@ -599,7 +630,7 @@ class AdaptiveRenderer:
         nodes = [(72, 410, 870, 555), (210, 620, 1008, 765), (72, 830, 870, 975)]
         for index, (item, box) in enumerate(zip(card["items"], nodes), 1):
             self.paper_card(image, box, 18, name=f"reason_card_{index}")
-            draw.ellipse((box[0] + 28, box[1] + 43, box[0] + 88, box[1] + 103), fill=self.cfg["accentInk"])
+            smooth_ellipse(image, (box[0] + 28, box[1] + 43, box[0] + 88, box[1] + 103), fill=self.cfg["accentInk"])
             draw_centered(draw, (box[0] + 58, box[1] + 73), str(index), F_LABEL, PAPER)
             self.draw_wrapped(draw, page, f"reason_{index}", (box[0] + 120, box[1] + 38), item, F_BODY, INK, box[2] - box[0] - 155, 3, (box[0] + 110, box[1] + 22, box[2] - 24, box[3] - 20), vcenter=True)
             if index < 3:
@@ -622,10 +653,17 @@ class AdaptiveRenderer:
         self.draw_wrapped(draw, page, "data_note", (112, 438), card["note"], F_BODY, INK, 830, 2, (100, 420, 980, 500))
         points = card["data_points"]
         values = [float(point["value"]) for point in points]
+        # The value column sits at a fixed right edge; measure the widest number
+        # and stop the track clear of it, so a max-value mark can never land on
+        # its own label. record() cannot catch that: the mark is not a block.
+        value_right = 980
+        value_left = value_right - max(
+            draw.textbbox((0, 0), str(point["display"]), font=F_LABEL)[2] for point in points)
+        track_right = value_left - 28
         low, high = min(values), max(values)
         span = high - low or 1.0
         if variant == "range-dots":
-            axis_left, axis_right = 310, 900
+            axis_left, axis_right = 310, track_right - 13  # keep the dot radius clear
             top, row_gap = 550, 82
             draw.line((axis_left, 525, axis_right, 525), fill=OUTLINE, width=3)
             draw.text((axis_left, 510), f"MIN {low:g}", font=F_LEGAL, fill=MUTED, anchor="ms")
@@ -635,8 +673,8 @@ class AdaptiveRenderer:
                 x = axis_left + round((value - low) / span * (axis_right - axis_left))
                 draw.text((122, y), point["label"], font=F_LABEL, fill=INK)
                 draw.line((axis_left, y + 20, axis_right, y + 20), fill="#E4DCCE", width=8)
-                draw.ellipse((x - 13, y + 7, x + 13, y + 33), fill=self.cfg["accentInk"])
-                draw.text((940, y), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ra")
+                smooth_ellipse(image, (x - 13, y + 7, x + 13, y + 33), fill=self.cfg["accentInk"])
+                draw.text((value_right, y), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ra")
         elif variant == "line-chart":
             if len(points) < 2:
                 raise ValueError(f"line chart needs at least two points on page {page}")
@@ -649,11 +687,11 @@ class AdaptiveRenderer:
                 draw.text((x, y - 28), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ms")
             draw.line(plotted, fill=self.cfg["accentInk"], width=8, joint="curve")
             for x, y in plotted:
-                draw.ellipse((x - 10, y - 10, x + 10, y + 10), fill=self.cfg["accent2"])
+                smooth_ellipse(image, (x - 10, y - 10, x + 10, y + 10), fill=self.cfg["accent2"])
         else:
             origin = axis_origin(low, span)
             reach = (high - origin) or 1.0
-            axis_left, axis_right = 300, 900
+            axis_left, axis_right = 300, track_right
             bottom = 550 + (len(points) - 1) * 82 + 42
             draw.line((axis_left, 525, axis_right, 525), fill=OUTLINE, width=3)
             draw.text((axis_left, 510), f"\uae30\uc900\uc120 {origin:g}", font=F_LEGAL, fill=MUTED, anchor="ls")
@@ -661,16 +699,16 @@ class AdaptiveRenderer:
             draw.line((axis_left, 540, axis_left, bottom + 12), fill=OUTLINE, width=2)
             for index, (point, value) in enumerate(zip(points, values)):
                 y = 550 + index * 82
-                width = max(8, round((value - origin) / reach * 600))
+                width = max(8, round((value - origin) / reach * (axis_right - axis_left)))
                 draw.text((122, y), point["label"], font=F_LABEL, fill=INK)
-                draw.rounded_rectangle((axis_left, y, axis_left + width, y + 42), radius=min(18, width // 2), fill=self.cfg["accentInk"])
-                draw.text((940, y + 3), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ra")
+                smooth_rounded(image, (axis_left, y, axis_left + width, y + 42), min(18, width // 2), fill=self.cfg["accentInk"])
+                draw.text((value_right, y + 3), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ra")
             self.audit["charts"].append({"page": page, "variant": variant, "axis_origin": origin, "axis_max": high, "zero_based": origin == 0})
 
     def impact_content(self, image, draw, page, item, box, featured=False, name="impact_card"):
         x1, y1, x2, y2 = box
         self.paper_card(image, box, 20, name=name)
-        draw.ellipse((x1 + 26, y1 + 26, x1 + 76, y1 + 76), fill=self.cfg["accentInk"])
+        smooth_ellipse(image, (x1 + 26, y1 + 26, x1 + 76, y1 + 76), fill=self.cfg["accentInk"])
         draw_centered(draw, (x1 + 51, y1 + 51), "●", F_LEGAL, PAPER)
         title_font = F_H2 if featured else sans(34, "bold")
         self.draw_wrapped(draw, page, f"impact_name_{y1}", (x1 + 96, y1 + 24), item["name"], title_font, INK, x2 - x1 - 125, 2, (x1 + 88, y1 + 15, x2 - 22, y1 + 95))
@@ -678,14 +716,14 @@ class AdaptiveRenderer:
         risk = f'리스크 · {item["risk"]}'
         if featured:
             opp_box, risk_box = (x1 + 26, y1 + 108, x1 + 444, y2 - 24), (x1 + 468, y1 + 108, x2 - 26, y2 - 24)
-            draw.rounded_rectangle(opp_box, radius=16, fill=GREEN_BG)
-            draw.rounded_rectangle(risk_box, radius=16, fill=RED_BG)
+            smooth_rounded(image, opp_box, 16, fill=GREEN_BG)
+            smooth_rounded(image, risk_box, 16, fill=RED_BG)
             self.draw_wrapped(draw, page, f"impact_opp_{y1}", (opp_box[0] + 16, opp_box[1] + 15), opportunity, F_SMALL, GREEN, opp_box[2] - opp_box[0] - 32, 3, (opp_box[0] + 12, opp_box[1] + 8, opp_box[2] - 12, opp_box[3] - 8), vcenter=True)
             self.draw_wrapped(draw, page, f"impact_risk_{y1}", (risk_box[0] + 16, risk_box[1] + 15), risk, F_SMALL, RED, risk_box[2] - risk_box[0] - 32, 3, (risk_box[0] + 12, risk_box[1] + 8, risk_box[2] - 12, risk_box[3] - 8), vcenter=True)
         else:
             opp_box, risk_box = (x1 + 24, y1 + 110, x2 - 24, y1 + 205), (x1 + 24, y1 + 222, x2 - 24, y2 - 24)
-            draw.rounded_rectangle(opp_box, radius=16, fill=GREEN_BG)
-            draw.rounded_rectangle(risk_box, radius=16, fill=RED_BG)
+            smooth_rounded(image, opp_box, 16, fill=GREEN_BG)
+            smooth_rounded(image, risk_box, 16, fill=RED_BG)
             self.draw_wrapped(draw, page, f"impact_opp_{y1}", (opp_box[0] + 14, opp_box[1] + 13), opportunity, F_SMALL, GREEN, opp_box[2] - opp_box[0] - 28, 3, (opp_box[0] + 10, opp_box[1] + 8, opp_box[2] - 10, opp_box[3] - 8), vcenter=True)
             self.draw_wrapped(draw, page, f"impact_risk_{y1}", (risk_box[0] + 14, risk_box[1] + 13), risk, F_SMALL, RED, risk_box[2] - risk_box[0] - 28, 3, (risk_box[0] + 10, risk_box[1] + 8, risk_box[2] - 10, risk_box[3] - 8), vcenter=True)
 
@@ -701,13 +739,13 @@ class AdaptiveRenderer:
             for index, item in enumerate(card["checklist"], 1):
                 box = (72, y, 1008, y + 120)
                 self.paper_card(image, box, 18, name=f"cta_card_{index}")
-                draw.ellipse((98, y + 34, 150, y + 86), fill=self.cfg["accentInk"])
+                smooth_ellipse(image, (98, y + 34, 150, y + 86), fill=self.cfg["accentInk"])
                 draw_centered(draw, (124, y + 60), "✓", F_LABEL, PAPER)
                 self.draw_wrapped(draw, page, f"cta_item_{index}", (178, y + 36), item, F_SMALL, INK, 785, 2, (170, y + 20, 980, y + 100), vcenter=True)
                 y += 140
             cta_box = (72, 985, 1008, 1085)
             self.register_block("cta_banner", cta_box)
-            draw.rounded_rectangle(cta_box, radius=22, fill=self.cfg["accentInk"])
+            smooth_rounded(image, cta_box, 22, fill=self.cfg["accentInk"])
             rendered = wrap_text(draw, card["cta"], F_BODY, 820, 2)
             bbox = draw_centered(draw, (540, 1035), rendered, F_BODY, PAPER, align="center")
             self.record(page, "cta", bbox, cta_box)
@@ -720,12 +758,12 @@ class AdaptiveRenderer:
             parts = [part.strip() for part in item.split("·", 1)]
             date = parts[0]
             detail = parts[1] if len(parts) > 1 else item
-            draw.rounded_rectangle((box[0] + 24, box[1] + 24, box[0] + 174, box[1] + 72), radius=14, fill=self.cfg["accentInk"])
+            smooth_rounded(image, (box[0] + 24, box[1] + 24, box[0] + 174, box[1] + 72), 14, fill=self.cfg["accentInk"])
             draw_centered(draw, (box[0] + 99, box[1] + 48), date, F_LEGAL, PAPER)
             self.draw_wrapped(draw, page, f"cta_item_{index}", (box[0] + 24, box[1] + 94), detail, F_SMALL, INK, box[2] - box[0] - 48, 3, (box[0] + 20, box[1] + 84, box[2] - 20, box[3] - 18))
         cta_box = (72, 862, 1008, 984)
         self.register_block("cta_banner", cta_box)
-        draw.rounded_rectangle(cta_box, radius=22, fill=self.cfg["accentInk"])
+        smooth_rounded(image, cta_box, 22, fill=self.cfg["accentInk"])
         rendered = wrap_text(draw, card["cta"], F_BODY, 820, 2)
         bbox = draw_centered(draw, (540, 923), rendered, F_BODY, PAPER, align="center")
         self.record(page, "cta", bbox, cta_box)
