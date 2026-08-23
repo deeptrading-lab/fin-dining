@@ -20,7 +20,6 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 
 ROOT = Path(__file__).resolve().parent
-ASSETS = ROOT / "assets"
 MANIFEST = ROOT / "templates-manifest.json"
 W, H = 1080, 1350
 SANS = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
@@ -32,13 +31,13 @@ IVORY = "#F4EEE4"
 INK = "#1C1915"
 MUTED = "#B0A79B"
 GOLD = "#C3A15D"
-GREEN = "#416B52"
-GREEN_BG = "#E8EFE9"
-RED = "#8B4A49"
-RED_BG = "#F2E6E5"
+# Opportunity/risk ink sat at 5.2:1 and 5.4:1 — AA, but washed out beside the
+# 15.8:1 body text on the same card. Deepened to ~7:1 and set in medium weight.
+GREEN = "#2E5540"
+GREEN_BG = "#E3EDE6"
+RED = "#6E3130"
+RED_BG = "#F0E1E0"
 OUTLINE = "#D7CBB8"
-
-PAGE_NAMES = ["cover", "summary", "event", "reason", "data", "impact", "cta"]
 
 # Every approved archetype paints a fixed number of blocks. Content above the
 # capacity used to be dropped by zip(); content below it raised a bare
@@ -61,40 +60,6 @@ ARCHETYPE_CAPACITY = {
 # the 72px safe margin. Nothing painted may leave this box.
 SAFE_BOX = (72, 220, 1008, 1176)
 
-CONFIGS = {
-    "mon-policy": {
-        "course": "COURSE 01", "label": "POLICY · 정책",
-        "accent": "#6F8FFF", "accentInk": "#3557C7", "accent2": "#AFC0FF",
-        "hero": ASSETS / "fin-dining-mon-policy-hero.png",
-    },
-    "tue-global": {
-        "course": "COURSE 02", "label": "GLOBAL · 글로벌",
-        "accent": "#A68CFF", "accentInk": "#6E50C9", "accent2": "#61C6CF",
-        "hero": ASSETS / "fin-dining-tue-global-hero.png",
-    },
-    "wed-market": {
-        "course": "COURSE 03", "label": "K-MARKET · 국내시장",
-        "accent": "#F07B68", "accentInk": "#B44736", "accent2": "#3AA79B",
-        "hero": ASSETS / "fin-dining-wed-market-hero.png",
-    },
-    "thu-industry": {
-        "course": "COURSE 04", "label": "INDUSTRY · 산업",
-        "accent": "#E4A953", "accentInk": "#8F5D18", "accent2": "#E4C88A",
-        "hero": ASSETS / "fin-dining-thu-industry-hero.png",
-    },
-    "fri-weekly": {
-        "course": "COURSE 05", "label": "WEEKLY CLOSE · 주간결산",
-        "accent": "#E0748E", "accentInk": "#97374D", "accent2": "#D9A1A8",
-        "hero": ASSETS / "fin-dining-fri-weekly-hero.png",
-    },
-    "sat-preview": {
-        "course": "COURSE 06", "label": "NEXT WEEK · 다음주",
-        "accent": "#C584B2", "accentInk": "#7D466C", "accent2": "#D2A8C2",
-        "hero": ASSETS / "fin-dining-sat-preview-hero.png",
-    },
-}
-
-
 def font(path: str, size: int, index: int = 0):
     return ImageFont.truetype(path, size=size, index=index)
 
@@ -108,7 +73,6 @@ def serif(size: int):
 
 
 F_BRAND = serif(36)
-F_SECTION = serif(32)
 F_PAGE = serif(28)
 F_COVER = sans(72, "bold")
 F_TITLE = sans(58, "bold")
@@ -117,6 +81,7 @@ F_BODY = sans(32, "regular")
 F_SMALL = sans(30, "regular")
 F_LABEL = sans(26, "semibold")
 F_LEGAL = sans(24, "regular")
+F_CAPSULE = sans(30, "medium")
 F_NUMBER = serif(46)
 
 
@@ -803,30 +768,8 @@ class AdaptiveRenderer:
         for name, box_, label, colour in (("opp", opp_box, f'기회 · {item["opportunity"]}', GREEN),
                                           ("risk", risk_box, f'리스크 · {item["risk"]}', RED)):
             self.draw_wrapped(draw, page, f"impact_{name}_{index}", (box_[0] + 16, box_[1] + 14), label,
-                              F_SMALL, colour, box_[2] - box_[0] - 32, 2,
+                              F_CAPSULE, colour, box_[2] - box_[0] - 32, 2,
                               (box_[0] + 12, box_[1] + 8, box_[2] - 12, box_[3] - 8), vcenter=True)
-
-    def impact_content(self, image, draw, page, item, box, featured=False, name="impact_card"):
-        x1, y1, x2, y2 = box
-        self.paper_card(image, box, 20, name=name)
-        smooth_ellipse(image, (x1 + 26, y1 + 26, x1 + 76, y1 + 76), fill=self.cfg["accentInk"])
-        draw_centered(draw, (x1 + 51, y1 + 51), "●", F_LEGAL, PAPER)
-        title_font = F_H2 if featured else sans(34, "bold")
-        self.draw_wrapped(draw, page, f"impact_name_{y1}", (x1 + 96, y1 + 24), item["name"], title_font, INK, x2 - x1 - 125, 2, (x1 + 88, y1 + 15, x2 - 22, y1 + 95))
-        opportunity = f'기회 · {item["opportunity"]}'
-        risk = f'리스크 · {item["risk"]}'
-        if featured:
-            opp_box, risk_box = (x1 + 26, y1 + 108, x1 + 444, y2 - 24), (x1 + 468, y1 + 108, x2 - 26, y2 - 24)
-            smooth_rounded(image, opp_box, 16, fill=GREEN_BG)
-            smooth_rounded(image, risk_box, 16, fill=RED_BG)
-            self.draw_wrapped(draw, page, f"impact_opp_{y1}", (opp_box[0] + 16, opp_box[1] + 15), opportunity, F_SMALL, GREEN, opp_box[2] - opp_box[0] - 32, 3, (opp_box[0] + 12, opp_box[1] + 8, opp_box[2] - 12, opp_box[3] - 8), vcenter=True)
-            self.draw_wrapped(draw, page, f"impact_risk_{y1}", (risk_box[0] + 16, risk_box[1] + 15), risk, F_SMALL, RED, risk_box[2] - risk_box[0] - 32, 3, (risk_box[0] + 12, risk_box[1] + 8, risk_box[2] - 12, risk_box[3] - 8), vcenter=True)
-        else:
-            opp_box, risk_box = (x1 + 24, y1 + 110, x2 - 24, y1 + 205), (x1 + 24, y1 + 222, x2 - 24, y2 - 24)
-            smooth_rounded(image, opp_box, 16, fill=GREEN_BG)
-            smooth_rounded(image, risk_box, 16, fill=RED_BG)
-            self.draw_wrapped(draw, page, f"impact_opp_{y1}", (opp_box[0] + 14, opp_box[1] + 13), opportunity, F_SMALL, GREEN, opp_box[2] - opp_box[0] - 28, 3, (opp_box[0] + 10, opp_box[1] + 8, opp_box[2] - 10, opp_box[3] - 8), vcenter=True)
-            self.draw_wrapped(draw, page, f"impact_risk_{y1}", (risk_box[0] + 14, risk_box[1] + 13), risk, F_SMALL, RED, risk_box[2] - risk_box[0] - 28, 3, (risk_box[0] + 10, risk_box[1] + 8, risk_box[2] - 10, risk_box[3] - 8), vcenter=True)
 
     def draw_impact(self, image, draw, page, card, variant):
         items = card["items"]
