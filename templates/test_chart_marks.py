@@ -39,8 +39,13 @@ CLUSTERED = [{"label": f"{m}월", "value": v, "display": str(v)}
 WIDE = [{"label": n, "value": v, "display": d} for n, v, d in
         [("원재료", 92, "1,092억"), ("장비", 108, "1,108억"), ("부품", 104, "1,104억"),
          ("제조", 121, "1,121억"), ("수요", 116, "1,116억")]]
+# A valley in a volatile series: both neighbours sit above it, so both
+# segments sweep toward it from above and a centred label can be clipped.
+VALLEY = [{"label": l, "value": v, "display": f"{v:+.2f}%"} for l, v in
+          [("19일", -5.80), ("20일", 5.89), ("21일", 0.88), ("24일", -3.12), ("25일", 0.68)]]
 
-for name, points in (("clustered range-dots", CLUSTERED), ("wide labels rank-bars", WIDE)):
+for name, points in (("clustered range-dots", CLUSTERED), ("wide labels rank-bars", WIDE),
+                     ("volatile valley line-chart", VALLEY)):
     result = audit(payload(points), f"/tmp/chart-marks-{name.split()[0]}")
     covered = [e for e in result["errors"] if "is covered by mark" in e]
     assert result["passed"], f"{name}: {result['errors']}"

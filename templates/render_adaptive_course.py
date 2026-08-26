@@ -34,9 +34,15 @@ GOLD = "#C3A15D"
 # Opportunity/risk ink sat at 5.2:1 and 5.4:1 — AA, but washed out beside the
 # 15.8:1 body text on the same card. Deepened to ~7:1 and set in medium weight.
 GREEN = "#2E5540"
-GREEN_BG = "#E3EDE6"
 RED = "#6E3130"
-RED_BG = "#F0E1E0"
+# Outline only. Dropping the tint raised the ink contrast on paper from 7.0:1
+# to 7.6:1 and 7.7:1 to 8.9:1, since paper is lighter than the tint ever was.
+GREEN_LINE = "#93A495"
+RED_LINE = "#B3928D"
+# The legend sits on the dark shell, not on paper. GREEN/RED at 2.2:1 and
+# 1.9:1 there fail AA outright; these hold ~8:1 while keeping the same hue.
+GREEN_ON_DARK = "#7FB894"
+RED_ON_DARK = "#E08F87"
 OUTLINE = "#D7CBB8"
 
 # Every approved archetype paints a fixed number of blocks. Content above the
@@ -450,6 +456,17 @@ class AdaptiveRenderer:
         box = tuple(round(v) for v in box)
         self.audit["marks"].append({"page": self.current_page, "name": name, "box": list(box)})
 
+    def register_segment(self, name: str, start, end, width: int):
+        """Track a drawn line. A diagonal's bounding box covers far more than
+        the stroke, so the check walks the segment itself."""
+        self.audit["marks"].append({
+            "page": self.current_page, "name": name,
+            "box": [round(min(start[0], end[0])), round(min(start[1], end[1])),
+                    round(max(start[0], end[0])), round(max(start[1], end[1]))],
+            "segment": [round(start[0]), round(start[1]), round(end[0]), round(end[1])],
+            "half_width": width / 2,
+        })
+
     def label(self, draw, page, name, xy, text, font_obj, fill, container, anchor=None):
         """Draw a single-line label and record its real ink box."""
         text = str(text)
@@ -479,10 +496,23 @@ class AdaptiveRenderer:
         # Data-driven marks must not land on any recorded text. Badge glyphs sit
         # inside their mark on purpose, but those go through draw_centered and
         # never reach records, so this needs no exception list.
+        def stroke_hits(mark, rect):
+            x0, y0, x1, y1 = mark["segment"]
+            half = mark["half_width"]
+            steps = max(2, int(math.hypot(x1 - x0, y1 - y0)))
+            for i in range(steps + 1):
+                t = i / steps
+                px, py = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+                if rect[0] - half <= px <= rect[2] + half and rect[1] - half <= py <= rect[3] + half:
+                    return True
+            return False
+
         marks = [item for item in self.audit["marks"] if item["page"] == page]
         for text in (item for item in self.audit["records"] if item["page"] == page):
             for mark in marks:
-                if hits(tuple(text["bbox"]), tuple(mark["box"])):
+                covered = (stroke_hits(mark, tuple(text["bbox"])) if "segment" in mark
+                           else hits(tuple(text["bbox"]), tuple(mark["box"])))
+                if covered:
                     self.audit["errors"].append(
                         f'page {page} text {text["name"]} is covered by mark {mark["name"]}: '
                         f'{text["bbox"]} vs {mark["box"]}'
@@ -749,12 +779,29 @@ class AdaptiveRenderer:
             if len(points) < 2:
                 raise ValueError(f"line chart needs at least two points on page {page}")
             xs = [180 + i * (720 / (len(points) - 1)) for i in range(len(points))]
-            plotted = []
-            for x, point, value in zip(xs, points, values):
-                y = round(chart_bottom - 120 - ((value - low) / span) * chart_height)
-                plotted.append((x, y))
+            ys = [round(chart_bottom - 120 - ((value - low) / span) * chart_height) for value in values]
+            plotted = list(zip(xs, ys))
+            for index, (point, (x, y)) in enumerate(zip(points, plotted)):
                 self.label(draw, page, f"chart_label_{point['label']}", (x, chart_bottom - 85), point["label"], F_LABEL, INK, box, "ma")
-                self.label(draw, page, f"chart_value_{point['label']}", (x, y - 28), point["display"], F_LABEL, self.cfg["accentInk"], box, "ms")
+                # Sit the value on whichever side the line runs lower, so a steep
+                # neighbouring segment cannot cut through it.
+                climbs_left = index > 0 and ys[index - 1] < y - 40
+                climbs_right = index + 1 < len(ys) and ys[index + 1] < y - 40
+                if climbs_left and climbs_right:
+                    # A valley: both neighbours sit higher, so both segments
+                    # sweep in toward this point from above. Centring at the
+                    # usual gap still lets a steep incoming diagonal clip the
+                    # label; a valley needs more headroom than a slope or a peak.
+                    anchor, label_x, gap = "ms", x, 44
+                elif climbs_right and not climbs_left:
+                    anchor, label_x, gap = "rs", x - 16, 28
+                elif climbs_left and not climbs_right:
+                    anchor, label_x, gap = "ls", x + 16, 28
+                else:
+                    anchor, label_x, gap = "ms", x, 28
+                self.label(draw, page, f"chart_value_{point['label']}", (label_x, y - gap), point["display"], F_LABEL, self.cfg["accentInk"], box, anchor)
+            for index in range(len(plotted) - 1):
+                self.register_segment(f"line_{index}", plotted[index], plotted[index + 1], 8)
             draw.line(plotted, fill=self.cfg["accentInk"], width=8, joint="curve")
             for index, (x, y) in enumerate(plotted):
                 node = (x - 10, y - 10, x + 10, y + 10)
@@ -785,6 +832,20 @@ class AdaptiveRenderer:
             self.draw_wrapped(draw, page, "data_takeaway", (102, 1058), takeaway,
                               F_BODY, IVORY, 900, 1, (96, 1046, 1008, 1114))
 
+    def impact_mark(self, image, draw, center, kind, colour):
+        """Circle for opportunity, triangle for risk.
+
+        The words repeated in all six capsules and ate the width. A shape
+        carries the same split without colour being the only cue, which
+        matters for readers who cannot separate the green and red tints.
+        """
+        cx, cy = center
+        if kind == "opp":
+            smooth_ellipse(image, (cx - 8, cy - 8, cx + 8, cy + 8), fill=colour)
+        else:
+            _smooth(image, (cx - 9, cy - 8, cx + 9, cy + 9), lambda pen, b: pen.polygon(
+                (((b[0] + b[2]) / 2, b[1]), (b[2], b[3]), (b[0], b[3])), fill=colour))
+
     def impact_row(self, image, draw, page, index, item, box):
         """One audience per full-width row: rank, name, then two equal columns.
 
@@ -800,20 +861,29 @@ class AdaptiveRenderer:
         self.draw_wrapped(draw, page, f"impact_name_{index}", (x1 + 98, y1 + 26), item["name"],
                           sans(36, "bold"), INK, x2 - x1 - 130, 1, (x1 + 90, y1 + 16, x2 - 22, y1 + 82))
         mid = (x1 + x2) // 2
-        opp_box, risk_box = (x1 + 26, y1 + 92, mid - 8, y2 - 20), (mid + 8, y1 + 92, x2 - 26, y2 - 20)
-        smooth_rounded(image, opp_box, 16, fill=GREEN_BG)
-        smooth_rounded(image, risk_box, 16, fill=RED_BG)
-        for name, box_, label, colour in (("opp", opp_box, f'기회 · {item["opportunity"]}', GREEN),
-                                          ("risk", risk_box, f'리스크 · {item["risk"]}', RED)):
-            self.draw_wrapped(draw, page, f"impact_{name}_{index}", (box_[0] + 16, box_[1] + 14), label,
-                              F_CAPSULE, colour, box_[2] - box_[0] - 32, 2,
-                              (box_[0] + 12, box_[1] + 8, box_[2] - 12, box_[3] - 8), vcenter=True)
+        opp_box, risk_box = (x1 + 26, y1 + 90, mid - 8, y2 - 18), (mid + 8, y1 + 90, x2 - 26, y2 - 18)
+        smooth_rounded(image, opp_box, 16, outline=GREEN_LINE, width=2)
+        smooth_rounded(image, risk_box, 16, outline=RED_LINE, width=2)
+        for name, box_, text, colour in (("opp", opp_box, item["opportunity"], GREEN),
+                                         ("risk", risk_box, item["risk"], RED)):
+            self.impact_mark(image, draw, (box_[0] + 22, (box_[1] + box_[3]) / 2), name, colour)
+            self.draw_wrapped(draw, page, f"impact_{name}_{index}", (box_[0] + 44, box_[1] + 14), text,
+                              F_CAPSULE, colour, box_[2] - box_[0] - 60, 2,
+                              (box_[0] + 40, box_[1] + 8, box_[2] - 12, box_[3] - 8), vcenter=True)
 
     def draw_impact(self, image, draw, page, card, variant):
         items = card["items"]
+        # One legend, top right. The shapes carry the split down the rows.
+        entries = [("opp", "기회", GREEN_ON_DARK), ("risk", "리스크", RED_ON_DARK)]
+        widths = [30 + draw.textbbox((0, 0), text, font=F_LABEL)[2] for _, text, _ in entries]
+        cursor = 1008 - sum(widths) - 36 * (len(entries) - 1)
+        for (kind, text, colour), width in zip(entries, widths):
+            self.impact_mark(image, draw, (cursor + 10, 402), kind, colour)
+            self.label(draw, page, f"impact_head_{kind}", (cursor + 30, 390), text, F_LABEL, colour, (72, 376, 1008, 424))
+            cursor += width + 36
         for index, item in enumerate(items, 1):
-            top = 400 + (index - 1) * 210
-            self.impact_row(image, draw, page, index, item, (72, top, 1008, top + 188))
+            top = 428 + (index - 1) * 196
+            self.impact_row(image, draw, page, index, item, (72, top, 1008, top + 176))
 
     def draw_cta(self, image, draw, page, card, variant):
         if variant == "checklist-stack":
