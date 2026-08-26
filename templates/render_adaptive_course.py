@@ -20,7 +20,6 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 
 ROOT = Path(__file__).resolve().parent
-ASSETS = ROOT / "assets"
 MANIFEST = ROOT / "templates-manifest.json"
 W, H = 1080, 1350
 SANS = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
@@ -32,13 +31,19 @@ IVORY = "#F4EEE4"
 INK = "#1C1915"
 MUTED = "#B0A79B"
 GOLD = "#C3A15D"
-GREEN = "#416B52"
-GREEN_BG = "#E8EFE9"
-RED = "#8B4A49"
-RED_BG = "#F2E6E5"
+# Opportunity/risk ink sat at 5.2:1 and 5.4:1 — AA, but washed out beside the
+# 15.8:1 body text on the same card. Deepened to ~7:1 and set in medium weight.
+GREEN = "#2E5540"
+RED = "#6E3130"
+# Outline only. Dropping the tint raised the ink contrast on paper from 7.0:1
+# to 7.6:1 and 7.7:1 to 8.9:1, since paper is lighter than the tint ever was.
+GREEN_LINE = "#93A495"
+RED_LINE = "#B3928D"
+# The legend sits on the dark shell, not on paper. GREEN/RED at 2.2:1 and
+# 1.9:1 there fail AA outright; these hold ~8:1 while keeping the same hue.
+GREEN_ON_DARK = "#7FB894"
+RED_ON_DARK = "#E08F87"
 OUTLINE = "#D7CBB8"
-
-PAGE_NAMES = ["cover", "summary", "event", "reason", "data", "impact", "cta"]
 
 # Every approved archetype paints a fixed number of blocks. Content above the
 # capacity used to be dropped by zip(); content below it raised a bare
@@ -49,7 +54,7 @@ ARCHETYPE_CAPACITY = {
     "timeline-cards": ("items", 3, 3),
     "causal-flow": ("items", 3, 3),
     "stacked-insights": ("items", 2, 4),
-    "featured-plus-grid": ("items", 3, 3),
+    "audience-rows": ("items", 3, 3),
     "range-dots": ("data_points", 2, 6),
     "line-chart": ("data_points", 2, 7),
     "rank-bars": ("data_points", 2, 6),
@@ -60,40 +65,6 @@ ARCHETYPE_CAPACITY = {
 # Editorial surfaces live between the course rule and the footer rule, inside
 # the 72px safe margin. Nothing painted may leave this box.
 SAFE_BOX = (72, 220, 1008, 1176)
-
-CONFIGS = {
-    "mon-policy": {
-        "course": "COURSE 01", "label": "POLICY · 정책",
-        "accent": "#6F8FFF", "accentInk": "#3557C7", "accent2": "#AFC0FF",
-        "hero": ASSETS / "fin-dining-mon-policy-hero.png",
-    },
-    "tue-global": {
-        "course": "COURSE 02", "label": "GLOBAL · 글로벌",
-        "accent": "#A68CFF", "accentInk": "#6E50C9", "accent2": "#61C6CF",
-        "hero": ASSETS / "fin-dining-tue-global-hero.png",
-    },
-    "wed-market": {
-        "course": "COURSE 03", "label": "K-MARKET · 국내시장",
-        "accent": "#F07B68", "accentInk": "#B44736", "accent2": "#3AA79B",
-        "hero": ASSETS / "fin-dining-wed-market-hero.png",
-    },
-    "thu-industry": {
-        "course": "COURSE 04", "label": "INDUSTRY · 산업",
-        "accent": "#E4A953", "accentInk": "#8F5D18", "accent2": "#E4C88A",
-        "hero": ASSETS / "fin-dining-thu-industry-hero.png",
-    },
-    "fri-weekly": {
-        "course": "COURSE 05", "label": "WEEKLY CLOSE · 주간결산",
-        "accent": "#E0748E", "accentInk": "#97374D", "accent2": "#D9A1A8",
-        "hero": ASSETS / "fin-dining-fri-weekly-hero.png",
-    },
-    "sat-preview": {
-        "course": "COURSE 06", "label": "NEXT WEEK · 다음주",
-        "accent": "#C584B2", "accentInk": "#7D466C", "accent2": "#D2A8C2",
-        "hero": ASSETS / "fin-dining-sat-preview-hero.png",
-    },
-}
-
 
 def font(path: str, size: int, index: int = 0):
     return ImageFont.truetype(path, size=size, index=index)
@@ -108,7 +79,6 @@ def serif(size: int):
 
 
 F_BRAND = serif(36)
-F_SECTION = serif(32)
 F_PAGE = serif(28)
 F_COVER = sans(72, "bold")
 F_TITLE = sans(58, "bold")
@@ -117,6 +87,7 @@ F_BODY = sans(32, "regular")
 F_SMALL = sans(30, "regular")
 F_LABEL = sans(26, "semibold")
 F_LEGAL = sans(24, "regular")
+F_CAPSULE = sans(30, "medium")
 F_NUMBER = serif(46)
 
 
@@ -140,54 +111,185 @@ def paste_contain(background: Image.Image, foreground: Image.Image, box):
     background.alpha_composite(item, (x, y))
 
 
-def draw_arrow(draw: ImageDraw.ImageDraw, start, end, fill, width=4, head_length=24, head_width=18):
-    """Draw a shaft and arrowhead from one shared direction vector."""
+SHAPE_SS = 4  # supersample factor; Pillow antialiases neither curves nor diagonals
+
+
+def _smooth(image: Image.Image, box, paint):
+    """Render one shape on a supersampled tile and composite it down.
+
+    Pillow's ellipse and rounded_rectangle step their curved edges, which is
+    plainly visible on a 68px badge. Only the shape's own bounding box is
+    supersampled, so this costs a small transient tile rather than a 4x canvas.
+    """
+    pad = 2
+    x0, y0 = math.floor(box[0]) - pad, math.floor(box[1]) - pad
+    x1, y1 = math.ceil(box[2]) + pad + 1, math.ceil(box[3]) + pad + 1
+    tile = Image.new("RGBA", ((x1 - x0) * SHAPE_SS, (y1 - y0) * SHAPE_SS), (0, 0, 0, 0))
+    paint(ImageDraw.Draw(tile), (
+        (box[0] - x0) * SHAPE_SS, (box[1] - y0) * SHAPE_SS,
+        (box[2] - x0) * SHAPE_SS, (box[3] - y0) * SHAPE_SS,
+    ))
+    image.alpha_composite(tile.resize((x1 - x0, y1 - y0), Image.Resampling.LANCZOS), (x0, y0))
+
+
+def smooth_ellipse(image: Image.Image, box, fill=None, outline=None, width=1):
+    _smooth(image, box, lambda pen, scaled: pen.ellipse(
+        scaled, fill=fill, outline=outline, width=width * SHAPE_SS))
+
+
+def smooth_rounded(image: Image.Image, box, radius, fill=None, outline=None, width=1):
+    _smooth(image, box, lambda pen, scaled: pen.rounded_rectangle(
+        scaled, radius=radius * SHAPE_SS, fill=fill, outline=outline, width=width * SHAPE_SS))
+
+
+ARROW_SS = SHAPE_SS
+ARROW_STEPS = 72  # bezier samples
+
+
+def bezier(p0, p1, p2, steps=ARROW_STEPS):
+    return [(
+        (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0],
+        (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1],
+    ) for t in (i / steps for i in range(steps + 1))]
+
+
+def draw_arrow(image: Image.Image, start, end, fill, width=3, head_length=26, head_width=13, bow=0.18):
+    """Draw a bowed, tapered connector with a slim head.
+
+    The shaft is a quadratic bezier bowed upward off the chord, so it leaves a
+    card flat and dives into the next one, rather than sagging out of it.
+
+    A quadratic bezier's tangent at t=1 is exactly P2-P1, so the head is built
+    on that vector and its axis is tangent to the curve at the tip by
+    construction. The shaft is drawn the whole way to the tip and the head is
+    painted over it, which leaves no joint to misalign. Rendered on a
+    supersampled tile of the curve's bounding box, since Pillow does not
+    antialias diagonals.
+    """
     dx, dy = end[0] - start[0], end[1] - start[1]
-    length = math.hypot(dx, dy)
-    if length <= head_length:
+    chord = math.hypot(dx, dy)
+    if chord <= head_length:
         raise ValueError(f"arrow is too short: {start} -> {end}")
-    ux, uy = dx / length, dy / length
+    ux, uy = dx / chord, dy / chord
     px, py = -uy, ux
-    base = (end[0] - ux * head_length, end[1] - uy * head_length)
-    left = (base[0] + px * head_width / 2, base[1] + py * head_width / 2)
-    right = (base[0] - px * head_width / 2, base[1] - py * head_width / 2)
-    draw.line((start, base), fill=fill, width=width)
-    draw.polygon((end, left, right), fill=fill)
+    if py > 0:  # bow upward whichever way the connector runs
+        px, py = -px, -py
+    control = ((start[0] + end[0]) / 2 + px * chord * bow,
+               (start[1] + end[1]) / 2 + py * chord * bow)
+    curve = bezier(start, control, end)
+
+    tx, ty = end[0] - control[0], end[1] - control[1]
+    tangent = math.hypot(tx, ty)
+    hux, huy = tx / tangent, ty / tangent
+    hpx, hpy = -huy, hux
+    base = (end[0] - hux * head_length, end[1] - huy * head_length)
+    left = (base[0] + hpx * head_width / 2, base[1] + hpy * head_width / 2)
+    right = (base[0] - hpx * head_width / 2, base[1] - hpy * head_width / 2)
+
+    pad = head_width + width + 4
+    xs = [pt[0] for pt in curve]
+    ys = [pt[1] for pt in curve]
+    x0, y0 = math.floor(min(xs) - pad), math.floor(min(ys) - pad)
+    x1, y1 = math.ceil(max(xs) + pad), math.ceil(max(ys) + pad)
+    tile = Image.new("RGBA", ((x1 - x0) * ARROW_SS, (y1 - y0) * ARROW_SS), (0, 0, 0, 0))
+    pen = ImageDraw.Draw(tile)
+
+    def at(point):
+        return ((point[0] - x0) * ARROW_SS, (point[1] - y0) * ARROW_SS)
+
+    edge_left, edge_right = [], []
+    for i, point in enumerate(curve):
+        ahead = curve[1] if i == 0 else point
+        behind = point if i == 0 else curve[i - 1]
+        sx, sy = ahead[0] - behind[0], ahead[1] - behind[1]
+        span = math.hypot(sx, sy) or 1.0
+        nx, ny = -sy / span, sx / span
+        half = width * (0.35 + 0.15 * i / (len(curve) - 1))
+        edge_left.append((point[0] + nx * half, point[1] + ny * half))
+        edge_right.append((point[0] - nx * half, point[1] - ny * half))
+    pen.polygon([at(pt) for pt in edge_left + edge_right[::-1]], fill=fill)
+    pen.polygon((at(end), at(left), at(right)), fill=fill)
+    image.alpha_composite(tile.resize((x1 - x0, y1 - y0), Image.Resampling.LANCZOS), (x0, y0))
+
+    ex, ey = curve[-1][0] - curve[-2][0], curve[-1][1] - curve[-2][1]
+    end_span = math.hypot(ex, ey) or 1.0
+    tangent_cosine = (ex * hux + ey * huy) / end_span
     hx, hy = end[0] - base[0], end[1] - base[1]
     head_axis_length = math.hypot(hx, hy)
-    cross_error = ux * hy - uy * hx
-    alignment_cosine = (ux * hx + uy * hy) / head_axis_length
+    cross_error = hux * hy - huy * hx
+    alignment_cosine = (hux * hx + huy * hy) / head_axis_length
     return {
         "start": [round(start[0]), round(start[1])],
+        "control": [round(control[0], 2), round(control[1], 2)],
         "base": [round(base[0], 2), round(base[1], 2)],
         "tip": [round(end[0]), round(end[1])],
-        "direction": [round(ux, 4), round(uy, 4)],
+        "direction": [round(hux, 4), round(huy, 4)],
+        "bow": bow,
         "head_length": head_length,
         "head_width": head_width,
         "cross_error": round(cross_error, 8),
         "alignment_cosine": round(alignment_cosine, 8),
-        "aligned": abs(cross_error) < 1e-6 and alignment_cosine > 0.9999,
+        "tangent_cosine": round(tangent_cosine, 8),
+        "aligned": abs(cross_error) < 1e-6 and alignment_cosine > 0.9999 and tangent_cosine > 0.9999,
     }
 
 
-def wrap_text(draw: ImageDraw.ImageDraw, value: str, font_obj, max_width: int, max_lines: int | None = None):
-    words = str(value).split()
-    if not words:
-        return ""
+def _pack_lines(draw: ImageDraw.ImageDraw, chunks, font_obj, max_width: int):
     lines, current = [], ""
-    for word in words:
-        trial = word if not current else f"{current} {word}"
+    for chunk in chunks:
+        trial = chunk if not current else f"{current} {chunk}"
         if draw.textbbox((0, 0), trial, font=font_obj)[2] <= max_width:
             current = trial
         else:
             if current:
                 lines.append(current)
-            current = word
+            current = chunk
     if current:
         lines.append(current)
+    return lines
+
+
+def wrap_text(draw: ImageDraw.ImageDraw, value: str, font_obj, max_width: int, max_lines: int | None = None):
+    """Wrap copy, breaking after a separator when the copy is a list of items.
+
+    `A · B · C` reads badly when the break lands mid-item and strands two
+    syllables on the second line. Breaking after the separator keeps each item
+    whole. Skipped when that would leave a stub line, so `기회 · <long>` does
+    not put `기회` alone on line one.
+    """
+    text = str(value)
+    if not text.split():
+        return ""
+    lines = _pack_lines(draw, text.split(), font_obj, max_width)
+    chunks = re.split(r"(?<=[·,])\s+", text)
+    if len(chunks) > 1:
+        by_item = _pack_lines(draw, chunks, font_obj, max_width)
+        stub = any(draw.textbbox((0, 0), line, font=font_obj)[2] < max_width * 0.4
+                   for line in by_item[:-1])
+        if len(by_item) <= len(lines) and not stub:
+            lines = by_item
     if max_lines and len(lines) > max_lines:
         raise ValueError(f"copy exceeds {max_lines} lines: {value}")
     return "\n".join(lines)
+
+
+def draw_centered(draw: ImageDraw.ImageDraw, center, text: str, font_obj, fill, spacing=8, align="left"):
+    """Center text on its real ink box and return that box.
+
+    Pillow's "mm" anchor centers on the font's ascender/descender box, not on
+    the glyph ink, so text without descenders (digits, checkmarks, bullets)
+    lands 1-2px high inside a circle or badge.
+    """
+    multiline = "\n" in text
+    box = (draw.multiline_textbbox((0, 0), text, font=font_obj, spacing=spacing, align=align)
+           if multiline else draw.textbbox((0, 0), text, font=font_obj))
+    x = center[0] - (box[0] + box[2]) / 2
+    y = center[1] - (box[1] + box[3]) / 2
+    if multiline:
+        draw.multiline_text((x, y), text, font=font_obj, fill=fill, spacing=spacing, align=align)
+    else:
+        draw.text((x, y), text, font=font_obj, fill=fill)
+    return (x + box[0], y + box[1], x + box[2], y + box[3])
 
 
 def count_numbers(value: str) -> int:
@@ -274,7 +376,7 @@ def make_plan(payload: dict) -> dict:
             variant = "calendar-grid" if dated_count >= 2 else "checklist-stack"
             reason = "dated items support a calendar grid" if dated_count >= 2 else "undated items need a checklist"
         elif isinstance(card.get("items", [None])[0], dict):
-            variant, reason = "featured-plus-grid", "one featured audience and two supporting audiences create hierarchy"
+            variant, reason = "audience-rows", "one row per audience keeps opportunity and risk comparable"
         elif card.get("section", "").upper() == "TASTING NOTES":
             numeric_density = sum(count_numbers(item) for item in card["items"])
             variant = "lead-plus-support" if numeric_density >= 3 else "editorial-list"
@@ -322,7 +424,7 @@ class AdaptiveRenderer:
         self.output_dir = output_dir
         self.cfg = runtime_config(payload["day_key"])
         self.current_page = 0
-        self.audit = {"version": "4.1", "records": [], "arrows": [], "blocks": [], "charts": [], "errors": [], "pages": []}
+        self.audit = {"version": "4.1", "records": [], "arrows": [], "blocks": [], "marks": [], "charts": [], "errors": [], "pages": []}
 
     def record(self, page: int, name: str, bbox, container):
         bbox = tuple(round(v) for v in bbox)
@@ -344,6 +446,35 @@ class AdaptiveRenderer:
         box = tuple(round(v) for v in box)
         self.audit["blocks"].append({"page": self.current_page, "name": name, "box": list(box), "collide": collide})
 
+    def register_mark(self, name: str, box):
+        """Track a foreground shape whose position comes from the data.
+
+        Fixed geometry is verified once by eye and then never moves. A chart
+        mark moves with every day's numbers, so it is the only thing that can
+        land on a label without anyone noticing.
+        """
+        box = tuple(round(v) for v in box)
+        self.audit["marks"].append({"page": self.current_page, "name": name, "box": list(box)})
+
+    def register_segment(self, name: str, start, end, width: int):
+        """Track a drawn line. A diagonal's bounding box covers far more than
+        the stroke, so the check walks the segment itself."""
+        self.audit["marks"].append({
+            "page": self.current_page, "name": name,
+            "box": [round(min(start[0], end[0])), round(min(start[1], end[1])),
+                    round(max(start[0], end[0])), round(max(start[1], end[1]))],
+            "segment": [round(start[0]), round(start[1]), round(end[0]), round(end[1])],
+            "half_width": width / 2,
+        })
+
+    def label(self, draw, page, name, xy, text, font_obj, fill, container, anchor=None):
+        """Draw a single-line label and record its real ink box."""
+        text = str(text)
+        box = draw.textbbox(xy, text, font=font_obj, anchor=anchor)
+        draw.text(xy, text, font=font_obj, fill=fill, anchor=anchor)
+        self.record(page, name, box, container)
+        return box
+
     def check_collisions(self, page: int):
         blocks = [item for item in self.audit["blocks"] if item["page"] == page]
         for item in blocks:
@@ -352,20 +483,77 @@ class AdaptiveRenderer:
                 self.audit["errors"].append(
                     f'page {page} block {item["name"]} breaks the safe area: {box} vs {list(SAFE_BOX)}'
                 )
+        def hits(a, b):
+            return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
         surfaces = [(item["name"], tuple(item["box"])) for item in blocks if item["collide"]]
         for index, (name_a, a) in enumerate(surfaces):
             for name_b, b in surfaces[index + 1:]:
-                if a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]:
+                if hits(a, b):
                     self.audit["errors"].append(
                         f"page {page} block {name_a} overlaps {name_b}: {list(a)} vs {list(b)}"
                     )
+        # Data-driven marks must not land on any recorded text. Badge glyphs sit
+        # inside their mark on purpose, but those go through draw_centered and
+        # never reach records, so this needs no exception list.
+        def stroke_hits(mark, rect):
+            x0, y0, x1, y1 = mark["segment"]
+            half = mark["half_width"]
+            steps = max(2, int(math.hypot(x1 - x0, y1 - y0)))
+            for i in range(steps + 1):
+                t = i / steps
+                px, py = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+                if rect[0] - half <= px <= rect[2] + half and rect[1] - half <= py <= rect[3] + half:
+                    return True
+            return False
 
-    def draw_wrapped(self, draw, page, name, xy, value, font_obj, fill, max_width, max_lines, container, spacing=8):
+        marks = [item for item in self.audit["marks"] if item["page"] == page]
+        for text in (item for item in self.audit["records"] if item["page"] == page):
+            for mark in marks:
+                covered = (stroke_hits(mark, tuple(text["bbox"])) if "segment" in mark
+                           else hits(tuple(text["bbox"]), tuple(mark["box"])))
+                if covered:
+                    self.audit["errors"].append(
+                        f'page {page} text {text["name"]} is covered by mark {mark["name"]}: '
+                        f'{text["bbox"]} vs {mark["box"]}'
+                    )
+
+    def draw_wrapped(self, draw, page, name, xy, value, font_obj, fill, max_width, max_lines, container, spacing=8, vcenter=False):
+        """Draw wrapped copy and record its box.
+
+        vcenter drops the block on the container's vertical centre using the
+        real ink height, so a one-line card no longer sits high in a box sized
+        for three.
+        """
         rendered = wrap_text(draw, value, font_obj, max_width, max_lines)
-        draw.multiline_text(xy, rendered, font=font_obj, fill=fill, spacing=spacing)
-        bbox = draw.multiline_textbbox(xy, rendered, font=font_obj, spacing=spacing)
+        x, y = xy
+        if vcenter:
+            ink = draw.multiline_textbbox((x, 0), rendered, font=font_obj, spacing=spacing)
+            y = (container[1] + container[3]) / 2 - (ink[1] + ink[3]) / 2
+        draw.multiline_text((x, y), rendered, font=font_obj, fill=fill, spacing=spacing)
+        bbox = draw.multiline_textbbox((x, y), rendered, font=font_obj, spacing=spacing)
         self.record(page, name, bbox, container)
         return bbox
+
+    def draw_stack(self, draw, page, name, box, parts, gap=16):
+        """Draw stacked runs of copy centred as one block inside box.
+
+        A date line above its body has to be centred as a unit; centring each
+        run against the same container just stacks them on top of each other.
+        """
+        rendered, total = [], 0.0
+        for suffix, text, font_obj, fill, max_lines in parts:
+            lines = wrap_text(draw, text, font_obj, box[2] - box[0], max_lines)
+            ink = draw.multiline_textbbox((0, 0), lines, font=font_obj, spacing=8)
+            rendered.append((suffix, lines, font_obj, fill, ink))
+            total += ink[3] - ink[1]
+        total += gap * (len(rendered) - 1)
+        top = (box[1] + box[3]) / 2 - total / 2
+        for suffix, lines, font_obj, fill, ink in rendered:
+            height = ink[3] - ink[1]
+            draw.multiline_text((box[0], top - ink[1]), lines, font=font_obj, fill=fill, spacing=8)
+            self.record(page, f"{name}_{suffix}", (box[0] + ink[0], top, box[0] + ink[2], top + height), box)
+            top += height + gap
 
     def paper_card(self, image, box, radius=20, fill=PAPER, name=None):
         self.register_block(name or f'card_{len(self.audit["blocks"])}', box)
@@ -374,7 +562,7 @@ class AdaptiveRenderer:
         sd = ImageDraw.Draw(shadow)
         sd.rounded_rectangle((x1, y1 + 8, x2, y2 + 8), radius=radius, fill=(0, 0, 0, 58))
         image.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(14)))
-        ImageDraw.Draw(image).rounded_rectangle(box, radius=radius, fill=fill, outline=OUTLINE, width=1)
+        smooth_rounded(image, box, radius, fill=fill, outline=OUTLINE, width=1)
 
     def base(self, page: int, total: int):
         image = Image.new("RGBA", (W, H), BG)
@@ -384,7 +572,12 @@ class AdaptiveRenderer:
         draw.text((72, 118), "by Finsight", font=F_LEGAL, fill=MUTED)
         draw.line((72, 151, 1008, 151), fill=GOLD, width=2)
         draw.text((72, 181), self.cfg["course"], font=F_PAGE, fill=self.cfg["accent"])
-        draw.text((1008, 181), self.cfg["label"], font=F_LEGAL, fill=IVORY, anchor="ra")
+        # layout label is `ENGLISH · 한글` saying the same thing twice; keep the
+        # English and spend the space on the period the course actually covers.
+        label = self.cfg["label"].split("·")[0].strip()
+        period = self.payload.get("period")
+        draw.text((1008, 181), f"{label} · {period}" if period else label,
+                  font=F_LEGAL, fill=IVORY, anchor="ra")
         draw.line((72, 1176, 1008, 1176), fill="#3B352E", width=2)
         draw.text((72, 1214), f'{self.payload["date"]} · KST', font=F_LEGAL, fill=MUTED)
         draw.text((1008, 1214), f"{page:02d} / {total:02d}", font=F_PAGE, fill=self.cfg["accent"], anchor="ra")
@@ -395,28 +588,69 @@ class AdaptiveRenderer:
         return image, draw
 
     def page_heading(self, draw, page, card):
-        draw.text((72, 235), card["section"], font=F_SECTION, fill=self.cfg["accent"])
+        """Optional eyebrow above the headline, then the headline.
+
+        The eyebrow is the card's actual subject, written by the author. A
+        generic role label (`숫자`, `결론`) only repeats what the headline
+        already says, so a card with nothing specific to add omits it and the
+        headline takes the space instead.
+        """
+        eyebrow = card.get("eyebrow")
+        if eyebrow:
+            self.draw_wrapped(draw, page, "eyebrow", (72, 244), eyebrow,
+                              F_LABEL, self.cfg["accent"], 900, 1, (72, 234, 1008, 278))
+        top = 282 if eyebrow else 246
         for title_font in (F_TITLE, sans(54, "bold"), sans(50, "bold")):
             try:
                 rendered = wrap_text(draw, card["headline"], title_font, 900, 2)
-                bbox = draw.multiline_textbbox((72, 282), rendered, font=title_font, spacing=8)
-                if bbox[3] <= 370:
-                    draw.multiline_text((72, 282), rendered, font=title_font, fill=IVORY, spacing=8)
-                    self.record(page, "headline", bbox, (72, 270, 1008, 380))
+                bbox = draw.multiline_textbbox((72, top), rendered, font=title_font, spacing=8)
+                if bbox[3] <= 378:
+                    draw.multiline_text((72, top), rendered, font=title_font, fill=IVORY, spacing=8)
+                    self.record(page, "headline", bbox, (72, top - 12, 1008, 384))
                     return
             except ValueError:
                 continue
         raise ValueError(f"headline cannot fit page {page}: {card['headline']}")
 
+    def draw_date_rail(self, image, draw, page, points):
+        """Cover visual drawn from the deck's own dates.
+
+        The weekday hero asset is fixed, so it says nothing about the day's
+        story. When the cover carries a `visual` block the right column becomes
+        a rail of the week's dates instead, which is the story for a preview
+        course. Decorative-only shapes are not allowed here (rule 5.1), so this
+        renders content or nothing.
+        """
+        if not 2 <= len(points) <= 4:
+            raise ValueError(f"date rail needs 2 to 4 points on page {page}")
+        rail_x, gap = 606, 152
+        top = 235 + (845 - (len(points) - 1) * gap) / 2
+        draw.line((rail_x, top, rail_x, top + (len(points) - 1) * gap), fill="#4A4138", width=2)
+        for index, point in enumerate(points):
+            y = top + index * gap
+            focus = bool(point.get("focus"))
+            radius = 15 if focus else 9
+            if focus:
+                smooth_ellipse(image, (rail_x - 27, y - 27, rail_x + 27, y + 27), outline=self.cfg["accent2"], width=2)
+            smooth_ellipse(image, (rail_x - radius, y - radius, rail_x + radius, y + radius),
+                           fill=self.cfg["accent"] if focus else MUTED)
+            self.draw_wrapped(draw, page, f"rail_date_{index}", (rail_x + 52, y - 40), point["date"],
+                              serif(42), self.cfg["accent"] if focus else IVORY, 330, 1, (rail_x + 45, y - 54, 1008, y + 16))
+            self.draw_wrapped(draw, page, f"rail_label_{index}", (rail_x + 52, y + 18), point["label"],
+                              F_SMALL, IVORY if focus else MUTED, 330, 2, (rail_x + 45, y + 12, 1008, y + 92))
+
     def draw_cover(self, image, draw, page, card, variant):
         if variant == "split-hero":
-            hero_box = (520, 235, 1040, 1080)
-            draw.ellipse((615, 270, 1015, 670), fill="#1D1A17", outline="#4A4138", width=2)
-            paste_contain(image, Image.open(self.cfg["hero"]), hero_box)
+            if "visual" in card:
+                self.draw_date_rail(image, draw, page, card["visual"]["points"])
+            else:
+                smooth_ellipse(image, (615, 270, 1015, 670), fill="#1D1A17", outline="#4A4138", width=2)
+                paste_contain(image, Image.open(self.cfg["hero"]), (520, 235, 1040, 1080))
             self.draw_wrapped(draw, page, "eyebrow", (72, 244), card["eyebrow"], F_LABEL, self.cfg["accent"], 430, 2, (72, 230, 500, 300))
             self.draw_wrapped(draw, page, "cover_headline", (72, 318), card["headline"], F_COVER, IVORY, 500, 3, (72, 300, 560, 575), 10)
-            self.draw_wrapped(draw, page, "subheadline", (72, 605), card["subheadline"], F_BODY, MUTED, 455, 2, (72, 590, 530, 690))
-            draw.line((72, 720, 382, 720), fill=self.cfg["accent"], width=4)
+            bbox = self.draw_wrapped(draw, page, "subheadline", (72, 605), card["subheadline"], F_BODY, IVORY, 455, 2, (72, 590, 530, 690))
+            # Rule underlines the copy it emphasises, so it tracks its width
+            draw.line((72, bbox[3] + 34, bbox[2], bbox[3] + 34), fill=self.cfg["accent"], width=4)
         else:
             self.draw_wrapped(draw, page, "eyebrow", (72, 250), card["eyebrow"], F_LABEL, self.cfg["accent"], 850, 2, (72, 235, 1008, 300))
             self.draw_wrapped(draw, page, "cover_headline", (72, 335), card["headline"], F_COVER, IVORY, 900, 3, (72, 315, 1008, 610), 10)
@@ -427,13 +661,16 @@ class AdaptiveRenderer:
         if variant == "lead-plus-support":
             lead = (72, 400, 1008, 625)
             self.register_block("summary_lead", lead)
-            draw.rounded_rectangle(lead, radius=24, fill=self.cfg["accentInk"])
-            draw.text((108, 438), "01 · LEAD", font=F_SECTION, fill=self.cfg["accent2"])
-            self.draw_wrapped(draw, page, "summary_1", (108, 500), items[0], F_H2, PAPER, 820, 3, (100, 485, 970, 600), 9)
+            smooth_rounded(image, lead, 24, fill=self.cfg["accentInk"])
+            # Same number-left, copy-right structure as 02 and 03. The old
+            # `01 · LEAD` was serif English in accent2 on accentInk, which read
+            # as decoration at roughly 2:1 contrast.
+            draw.text((110, 445), "01", font=F_NUMBER, fill=PAPER)
+            self.draw_wrapped(draw, page, "summary_1", (200, 455), items[0], F_H2, PAPER, 730, 2, (190, 440, 970, 600), 9, vcenter=True)
             for index, (item, box) in enumerate(zip(items[1:], ((72, 660, 1008, 810), (72, 842, 1008, 992))), 2):
                 self.paper_card(image, box, 18, name=f"summary_card_{index}")
                 draw.text((110, box[1] + 45), f"0{index}", font=F_NUMBER, fill=self.cfg["accentInk"])
-                self.draw_wrapped(draw, page, f"summary_{index}", (200, box[1] + 43), item, F_BODY, INK, 750, 3, (190, box[1] + 25, 970, box[3] - 20))
+                self.draw_wrapped(draw, page, f"summary_{index}", (200, box[1] + 43), item, F_BODY, INK, 750, 3, (190, box[1] + 25, 970, box[3] - 20), vcenter=True)
         else:
             line_counts = [max(1, math.ceil(len(item) / 28)) for item in items]
             heights = [120 + min(lines, 3) * 22 for lines in line_counts]
@@ -443,21 +680,28 @@ class AdaptiveRenderer:
                 box = (72, y, 1008, y + height)
                 self.paper_card(image, box, 18, name=f"summary_card_{index}")
                 draw.text((110, y + 42), f"0{index}", font=F_NUMBER, fill=self.cfg["accentInk"])
-                self.draw_wrapped(draw, page, f"summary_{index}", (200, y + 40), item, F_BODY, INK, 750, 3, (190, y + 20, 970, y + height - 20))
+                self.draw_wrapped(draw, page, f"summary_{index}", (200, y + 40), item, F_BODY, INK, 750, 3, (190, y + 20, 970, y + height - 20), vcenter=True)
                 y += height + gap
 
     def draw_event(self, image, draw, page, card, variant):
         y_positions = (412, 610, 808)
         for index, (item, y) in enumerate(zip(card["items"], y_positions), 1):
-            box = (168 if index % 2 else 120, y, 1008 if index % 2 else 960, y + 158)
+            box = (120, y, 1008, y + 158)
             badge = (box[0] - 48, y + 45, box[0] + 20, y + 113)
             self.paper_card(image, box, 18, name=f"event_card_{index}")
             self.register_block(f"event_badge_{index}", badge, collide=False)
-            draw.rounded_rectangle(badge, radius=34, fill=self.cfg["accentInk"])
-            draw.text((box[0] - 14, y + 79), f"{index:02d}", font=F_LEGAL, fill=PAPER, anchor="mm")
-            self.draw_wrapped(draw, page, f"event_{index}", (box[0] + 52, y + 40), item, F_BODY, INK, box[2] - box[0] - 90, 3, (box[0] + 45, y + 24, box[2] - 25, y + 138))
-            if index < 3:
-                draw.line((540, y + 160, 540, y + 194), fill=self.cfg["accent"], width=3)
+            smooth_rounded(image, badge, 34, fill=self.cfg["accentInk"])
+            draw_centered(draw, (box[0] - 14, y + 79), f"{index:02d}", F_LEGAL, PAPER)
+            head, _, body = str(item).partition("·")
+            head, body = head.strip(), body.strip()
+            if body:
+                self.draw_stack(draw, page, f"event_{index}", (box[0] + 52, y + 16, box[2] - 25, y + 142),
+                                [("when", head, F_LABEL, self.cfg["accentInk"], 1),
+                                 ("body", body, F_BODY, INK, 2)])
+            else:
+                self.draw_wrapped(draw, page, f"event_{index}", (box[0] + 52, y + 40), item, F_BODY, INK, box[2] - box[0] - 90, 3, (box[0] + 45, y + 24, box[2] - 25, y + 138), vcenter=True)
+            if index < len(card["items"]):
+                draw.line((106, y + 113, 106, y + 243), fill=self.cfg["accent"], width=3)
 
     def draw_stacked(self, image, draw, page, card):
         """Balanced editorial cards for independent, non-causal insights."""
@@ -472,27 +716,24 @@ class AdaptiveRenderer:
             box = (72, y, 1008, y + height)
             self.paper_card(image, box, 18, name=f"insight_card_{index}")
             draw.text((110, y + 39), f"{index:02d}", font=F_NUMBER, fill=self.cfg["accentInk"])
-            self.draw_wrapped(draw, page, f"insight_{index}", (200, y + 38), item, F_BODY, INK, 750, 3, (190, y + 20, 970, y + height - 20))
+            self.draw_wrapped(draw, page, f"insight_{index}", (200, y + 38), item, F_BODY, INK, 750, 3, (190, y + 20, 970, y + height - 20), vcenter=True)
             y += height + gap
 
     def draw_reason(self, image, draw, page, card, variant):
         nodes = [(72, 410, 870, 555), (210, 620, 1008, 765), (72, 830, 870, 975)]
         for index, (item, box) in enumerate(zip(card["items"], nodes), 1):
             self.paper_card(image, box, 18, name=f"reason_card_{index}")
-            draw.ellipse((box[0] + 28, box[1] + 43, box[0] + 88, box[1] + 103), fill=self.cfg["accentInk"])
-            draw.text((box[0] + 58, box[1] + 73), str(index), font=F_LABEL, fill=PAPER, anchor="mm")
-            self.draw_wrapped(draw, page, f"reason_{index}", (box[0] + 120, box[1] + 38), item, F_BODY, INK, box[2] - box[0] - 155, 3, (box[0] + 110, box[1] + 22, box[2] - 24, box[3] - 20))
+            smooth_ellipse(image, (box[0] + 28, box[1] + 43, box[0] + 88, box[1] + 103), fill=self.cfg["accentInk"])
+            draw_centered(draw, (box[0] + 58, box[1] + 73), str(index), F_LABEL, PAPER)
+            self.draw_wrapped(draw, page, f"reason_{index}", (box[0] + 120, box[1] + 38), item, F_BODY, INK, box[2] - box[0] - 155, 3, (box[0] + 110, box[1] + 22, box[2] - 24, box[3] - 20), vcenter=True)
             if index < 3:
                 start_x = box[2] - 55 if index == 1 else box[0] + 55
                 end_x = 910 if index == 1 else 160
                 arrow = draw_arrow(
-                    draw,
+                    image,
                     (start_x, box[3] + 16),
                     (end_x, box[3] + 53),
                     self.cfg["accent"],
-                    width=4,
-                    head_length=24,
-                    head_width=20,
                 )
                 arrow.update({"page": page, "from_node": index, "to_node": index + 1})
                 self.audit["arrows"].append(arrow)
@@ -505,78 +746,144 @@ class AdaptiveRenderer:
         self.draw_wrapped(draw, page, "data_note", (112, 438), card["note"], F_BODY, INK, 830, 2, (100, 420, 980, 500))
         points = card["data_points"]
         values = [float(point["value"]) for point in points]
+        # The value column sits at a fixed right edge; measure the widest number
+        # and stop the track clear of it, so a max-value mark can never land on
+        # its own label. record() cannot catch that: the mark is not a block.
+        # A chart alone does not say what to make of it; reserve a strip for the
+        # author's one-line reading when the card supplies one.
+        takeaway = card.get("takeaway")
+        chart_bottom, chart_height = 1010, 300
+        row_gap = min(82, (chart_bottom - 604) // max(1, len(points) - 1))
+        value_right = 980
+        value_left = value_right - max(
+            draw.textbbox((0, 0), str(point["display"]), font=F_LABEL)[2] for point in points)
+        track_right = value_left - 28
         low, high = min(values), max(values)
         span = high - low or 1.0
         if variant == "range-dots":
-            axis_left, axis_right = 310, 900
-            top, row_gap = 550, 82
+            axis_left, axis_right = 310, track_right - 13  # keep the dot radius clear
+            top = 550
             draw.line((axis_left, 525, axis_right, 525), fill=OUTLINE, width=3)
-            draw.text((axis_left, 510), f"MIN {low:g}", font=F_LEGAL, fill=MUTED, anchor="ms")
-            draw.text((axis_right, 510), f"MAX {high:g}", font=F_LEGAL, fill=MUTED, anchor="ms")
+            self.label(draw, page, "axis_min", (axis_left, 510), f"MIN {low:g}", F_LEGAL, MUTED, box, "ms")
+            self.label(draw, page, "axis_max", (axis_right, 510), f"MAX {high:g}", F_LEGAL, MUTED, box, "ms")
             for index, (point, value) in enumerate(zip(points, values)):
                 y = top + index * row_gap
                 x = axis_left + round((value - low) / span * (axis_right - axis_left))
-                draw.text((122, y), point["label"], font=F_LABEL, fill=INK)
+                self.label(draw, page, f"chart_label_{index}", (122, y), point["label"], F_LABEL, INK, box)
                 draw.line((axis_left, y + 20, axis_right, y + 20), fill="#E4DCCE", width=8)
-                draw.ellipse((x - 13, y + 7, x + 13, y + 33), fill=self.cfg["accentInk"])
-                draw.text((940, y), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ra")
+                dot = (x - 13, y + 7, x + 13, y + 33)
+                self.register_mark(f"dot_{index}", dot)
+                smooth_ellipse(image, dot, fill=self.cfg["accentInk"])
+                self.label(draw, page, f"chart_value_{index}", (value_right, y), point["display"], F_LABEL, self.cfg["accentInk"], box, "ra")
         elif variant == "line-chart":
             if len(points) < 2:
                 raise ValueError(f"line chart needs at least two points on page {page}")
             xs = [180 + i * (720 / (len(points) - 1)) for i in range(len(points))]
-            plotted = []
-            for x, point, value in zip(xs, points, values):
-                y = round(890 - ((value - low) / span) * 300)
-                plotted.append((x, y))
-                draw.text((x, 925), point["label"], font=F_LABEL, fill=INK, anchor="ma")
-                draw.text((x, y - 28), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ms")
+            ys = [round(chart_bottom - 120 - ((value - low) / span) * chart_height) for value in values]
+            plotted = list(zip(xs, ys))
+            for index, (point, (x, y)) in enumerate(zip(points, plotted)):
+                self.label(draw, page, f"chart_label_{point['label']}", (x, chart_bottom - 85), point["label"], F_LABEL, INK, box, "ma")
+                # Sit the value on whichever side the line runs lower, so a steep
+                # neighbouring segment cannot cut through it.
+                climbs_left = index > 0 and ys[index - 1] < y - 40
+                climbs_right = index + 1 < len(ys) and ys[index + 1] < y - 40
+                if climbs_left and climbs_right:
+                    # A valley: both neighbours sit higher, so both segments
+                    # sweep in toward this point from above. Centring at the
+                    # usual gap still lets a steep incoming diagonal clip the
+                    # label; a valley needs more headroom than a slope or a peak.
+                    anchor, label_x, gap = "ms", x, 44
+                elif climbs_right and not climbs_left:
+                    anchor, label_x, gap = "rs", x - 16, 28
+                elif climbs_left and not climbs_right:
+                    anchor, label_x, gap = "ls", x + 16, 28
+                else:
+                    anchor, label_x, gap = "ms", x, 28
+                self.label(draw, page, f"chart_value_{point['label']}", (label_x, y - gap), point["display"], F_LABEL, self.cfg["accentInk"], box, anchor)
+            for index in range(len(plotted) - 1):
+                self.register_segment(f"line_{index}", plotted[index], plotted[index + 1], 8)
             draw.line(plotted, fill=self.cfg["accentInk"], width=8, joint="curve")
-            for x, y in plotted:
-                draw.ellipse((x - 10, y - 10, x + 10, y + 10), fill=self.cfg["accent2"])
+            for index, (x, y) in enumerate(plotted):
+                node = (x - 10, y - 10, x + 10, y + 10)
+                self.register_mark(f"node_{index}", node)
+                smooth_ellipse(image, node, fill=self.cfg["accent2"])
         else:
             origin = axis_origin(low, span)
             reach = (high - origin) or 1.0
-            axis_left, axis_right = 300, 900
-            bottom = 550 + (len(points) - 1) * 82 + 42
+            axis_left, axis_right = 300, track_right
+            bottom = 550 + (len(points) - 1) * row_gap + 42
             draw.line((axis_left, 525, axis_right, 525), fill=OUTLINE, width=3)
-            draw.text((axis_left, 510), f"\uae30\uc900\uc120 {origin:g}", font=F_LEGAL, fill=MUTED, anchor="ls")
-            draw.text((axis_right, 510), f"\ucd5c\ub300 {high:g}", font=F_LEGAL, fill=MUTED, anchor="rs")
+            self.label(draw, page, "axis_origin", (axis_left, 510), f"\uae30\uc900\uc120 {origin:g}", F_LEGAL, MUTED, box, "ls")
+            self.label(draw, page, "axis_max", (axis_right, 510), f"\ucd5c\ub300 {high:g}", F_LEGAL, MUTED, box, "rs")
             draw.line((axis_left, 540, axis_left, bottom + 12), fill=OUTLINE, width=2)
             for index, (point, value) in enumerate(zip(points, values)):
-                y = 550 + index * 82
-                width = max(8, round((value - origin) / reach * 600))
-                draw.text((122, y), point["label"], font=F_LABEL, fill=INK)
-                draw.rounded_rectangle((axis_left, y, axis_left + width, y + 42), radius=min(18, width // 2), fill=self.cfg["accentInk"])
-                draw.text((940, y + 3), point["display"], font=F_LABEL, fill=self.cfg["accentInk"], anchor="ra")
+                y = 550 + index * row_gap
+                width = max(8, round((value - origin) / reach * (axis_right - axis_left)))
+                self.label(draw, page, f"chart_label_{index}", (122, y), point["label"], F_LABEL, INK, box)
+                bar = (axis_left, y, axis_left + width, y + 42)
+                self.register_mark(f"bar_{index}", bar)
+                smooth_rounded(image, bar, min(18, width // 2), fill=self.cfg["accentInk"])
+                self.label(draw, page, f"chart_value_{index}", (value_right, y + 3), point["display"], F_LABEL, self.cfg["accentInk"], box, "ra")
             self.audit["charts"].append({"page": page, "variant": variant, "axis_origin": origin, "axis_max": high, "zero_based": origin == 0})
+        if takeaway:
+            # Below the paper panel, not inside it: the reading is the author's
+            # voice, not part of the chart.
+            smooth_rounded(image, (72, 1052, 78, 1108), 3, fill=self.cfg["accent"])
+            self.draw_wrapped(draw, page, "data_takeaway", (102, 1058), takeaway,
+                              F_BODY, IVORY, 900, 1, (96, 1046, 1008, 1114))
 
-    def impact_content(self, image, draw, page, item, box, featured=False, name="impact_card"):
-        x1, y1, x2, y2 = box
-        self.paper_card(image, box, 20, name=name)
-        draw.ellipse((x1 + 26, y1 + 26, x1 + 76, y1 + 76), fill=self.cfg["accentInk"])
-        draw.text((x1 + 51, y1 + 51), "●", font=F_LEGAL, fill=PAPER, anchor="mm")
-        title_font = F_H2 if featured else sans(34, "bold")
-        self.draw_wrapped(draw, page, f"impact_name_{y1}", (x1 + 96, y1 + 24), item["name"], title_font, INK, x2 - x1 - 125, 2, (x1 + 88, y1 + 15, x2 - 22, y1 + 95))
-        opportunity = f'기회 · {item["opportunity"]}'
-        risk = f'리스크 · {item["risk"]}'
-        if featured:
-            opp_box, risk_box = (x1 + 26, y1 + 108, x1 + 444, y2 - 24), (x1 + 468, y1 + 108, x2 - 26, y2 - 24)
-            draw.rounded_rectangle(opp_box, radius=16, fill=GREEN_BG)
-            draw.rounded_rectangle(risk_box, radius=16, fill=RED_BG)
-            self.draw_wrapped(draw, page, f"impact_opp_{y1}", (opp_box[0] + 16, opp_box[1] + 15), opportunity, F_SMALL, GREEN, opp_box[2] - opp_box[0] - 32, 3, (opp_box[0] + 12, opp_box[1] + 8, opp_box[2] - 12, opp_box[3] - 8))
-            self.draw_wrapped(draw, page, f"impact_risk_{y1}", (risk_box[0] + 16, risk_box[1] + 15), risk, F_SMALL, RED, risk_box[2] - risk_box[0] - 32, 3, (risk_box[0] + 12, risk_box[1] + 8, risk_box[2] - 12, risk_box[3] - 8))
+    def impact_mark(self, image, draw, center, kind, colour):
+        """Circle for opportunity, triangle for risk.
+
+        The words repeated in all six capsules and ate the width. A shape
+        carries the same split without colour being the only cue, which
+        matters for readers who cannot separate the green and red tints.
+        """
+        cx, cy = center
+        if kind == "opp":
+            smooth_ellipse(image, (cx - 8, cy - 8, cx + 8, cy + 8), fill=colour)
         else:
-            opp_box, risk_box = (x1 + 24, y1 + 110, x2 - 24, y1 + 205), (x1 + 24, y1 + 222, x2 - 24, y2 - 24)
-            draw.rounded_rectangle(opp_box, radius=16, fill=GREEN_BG)
-            draw.rounded_rectangle(risk_box, radius=16, fill=RED_BG)
-            self.draw_wrapped(draw, page, f"impact_opp_{y1}", (opp_box[0] + 14, opp_box[1] + 13), opportunity, F_SMALL, GREEN, opp_box[2] - opp_box[0] - 28, 3, (opp_box[0] + 10, opp_box[1] + 8, opp_box[2] - 10, opp_box[3] - 8))
-            self.draw_wrapped(draw, page, f"impact_risk_{y1}", (risk_box[0] + 14, risk_box[1] + 13), risk, F_SMALL, RED, risk_box[2] - risk_box[0] - 28, 3, (risk_box[0] + 10, risk_box[1] + 8, risk_box[2] - 10, risk_box[3] - 8))
+            _smooth(image, (cx - 9, cy - 8, cx + 9, cy + 9), lambda pen, b: pen.polygon(
+                (((b[0] + b[2]) / 2, b[1]), (b[2], b[3]), (b[0], b[3])), fill=colour))
+
+    def impact_row(self, image, draw, page, index, item, box):
+        """One audience per full-width row: rank, name, then two equal columns.
+
+        The old shape gave row one the full width and split rows two and three
+        in half, so the reader had to work out whether that meant importance or
+        just packing. Uniform rows carry the order in the rank badge instead.
+        """
+        x1, y1, x2, y2 = box
+        self.paper_card(image, box, 20, name=f"impact_card_{index}")
+        badge = (x1 + 26, y1 + 22, x1 + 78, y1 + 74)
+        smooth_ellipse(image, badge, fill=self.cfg["accentInk"])
+        draw_centered(draw, ((badge[0] + badge[2]) / 2, (badge[1] + badge[3]) / 2), f"{index:02d}", F_LEGAL, PAPER)
+        self.draw_wrapped(draw, page, f"impact_name_{index}", (x1 + 98, y1 + 26), item["name"],
+                          sans(36, "bold"), INK, x2 - x1 - 130, 1, (x1 + 90, y1 + 16, x2 - 22, y1 + 82))
+        mid = (x1 + x2) // 2
+        opp_box, risk_box = (x1 + 26, y1 + 90, mid - 8, y2 - 18), (mid + 8, y1 + 90, x2 - 26, y2 - 18)
+        smooth_rounded(image, opp_box, 16, outline=GREEN_LINE, width=2)
+        smooth_rounded(image, risk_box, 16, outline=RED_LINE, width=2)
+        for name, box_, text, colour in (("opp", opp_box, item["opportunity"], GREEN),
+                                         ("risk", risk_box, item["risk"], RED)):
+            self.impact_mark(image, draw, (box_[0] + 22, (box_[1] + box_[3]) / 2), name, colour)
+            self.draw_wrapped(draw, page, f"impact_{name}_{index}", (box_[0] + 44, box_[1] + 14), text,
+                              F_CAPSULE, colour, box_[2] - box_[0] - 60, 2,
+                              (box_[0] + 40, box_[1] + 8, box_[2] - 12, box_[3] - 8), vcenter=True)
 
     def draw_impact(self, image, draw, page, card, variant):
         items = card["items"]
-        self.impact_content(image, draw, page, items[0], (72, 400, 1008, 625), featured=True, name="impact_card_1")
-        self.impact_content(image, draw, page, items[1], (72, 660, 524, 1010), featured=False, name="impact_card_2")
-        self.impact_content(image, draw, page, items[2], (556, 660, 1008, 1010), featured=False, name="impact_card_3")
+        # One legend, top right. The shapes carry the split down the rows.
+        entries = [("opp", "기회", GREEN_ON_DARK), ("risk", "리스크", RED_ON_DARK)]
+        widths = [30 + draw.textbbox((0, 0), text, font=F_LABEL)[2] for _, text, _ in entries]
+        cursor = 1008 - sum(widths) - 36 * (len(entries) - 1)
+        for (kind, text, colour), width in zip(entries, widths):
+            self.impact_mark(image, draw, (cursor + 10, 402), kind, colour)
+            self.label(draw, page, f"impact_head_{kind}", (cursor + 30, 390), text, F_LABEL, colour, (72, 376, 1008, 424))
+            cursor += width + 36
+        for index, item in enumerate(items, 1):
+            top = 428 + (index - 1) * 196
+            self.impact_row(image, draw, page, index, item, (72, top, 1008, top + 176))
 
     def draw_cta(self, image, draw, page, card, variant):
         if variant == "checklist-stack":
@@ -584,16 +891,15 @@ class AdaptiveRenderer:
             for index, item in enumerate(card["checklist"], 1):
                 box = (72, y, 1008, y + 120)
                 self.paper_card(image, box, 18, name=f"cta_card_{index}")
-                draw.ellipse((98, y + 34, 150, y + 86), fill=self.cfg["accentInk"])
-                draw.text((124, y + 60), "✓", font=F_LABEL, fill=PAPER, anchor="mm")
-                self.draw_wrapped(draw, page, f"cta_item_{index}", (178, y + 36), item, F_SMALL, INK, 785, 2, (170, y + 20, 980, y + 100))
+                smooth_ellipse(image, (98, y + 34, 150, y + 86), fill=self.cfg["accentInk"])
+                draw_centered(draw, (124, y + 60), "✓", F_LABEL, PAPER)
+                self.draw_wrapped(draw, page, f"cta_item_{index}", (178, y + 36), item, F_SMALL, INK, 785, 2, (170, y + 20, 980, y + 100), vcenter=True)
                 y += 140
             cta_box = (72, 985, 1008, 1085)
             self.register_block("cta_banner", cta_box)
-            draw.rounded_rectangle(cta_box, radius=22, fill=self.cfg["accentInk"])
+            smooth_rounded(image, cta_box, 22, fill=self.cfg["accentInk"])
             rendered = wrap_text(draw, card["cta"], F_BODY, 820, 2)
-            bbox = draw.multiline_textbbox((540, 1035), rendered, font=F_BODY, anchor="mm", align="center", spacing=8)
-            draw.multiline_text((540, 1035), rendered, font=F_BODY, fill=PAPER, anchor="mm", align="center", spacing=8)
+            bbox = draw_centered(draw, (540, 1035), rendered, F_BODY, PAPER, align="center")
             self.record(page, "cta", bbox, cta_box)
             sources = "출처 · " + " · ".join(card["sources"])
             self.draw_wrapped(draw, page, "sources", (72, 1105), sources, F_LABEL, MUTED, 900, 1, (72, 1095, 1008, 1155))
@@ -604,15 +910,14 @@ class AdaptiveRenderer:
             parts = [part.strip() for part in item.split("·", 1)]
             date = parts[0]
             detail = parts[1] if len(parts) > 1 else item
-            draw.rounded_rectangle((box[0] + 24, box[1] + 24, box[0] + 174, box[1] + 72), radius=14, fill=self.cfg["accentInk"])
-            draw.text((box[0] + 99, box[1] + 48), date, font=F_LEGAL, fill=PAPER, anchor="mm")
+            smooth_rounded(image, (box[0] + 24, box[1] + 24, box[0] + 174, box[1] + 72), 14, fill=self.cfg["accentInk"])
+            draw_centered(draw, (box[0] + 99, box[1] + 48), date, F_LEGAL, PAPER)
             self.draw_wrapped(draw, page, f"cta_item_{index}", (box[0] + 24, box[1] + 94), detail, F_SMALL, INK, box[2] - box[0] - 48, 3, (box[0] + 20, box[1] + 84, box[2] - 20, box[3] - 18))
         cta_box = (72, 862, 1008, 984)
         self.register_block("cta_banner", cta_box)
-        draw.rounded_rectangle(cta_box, radius=22, fill=self.cfg["accentInk"])
+        smooth_rounded(image, cta_box, 22, fill=self.cfg["accentInk"])
         rendered = wrap_text(draw, card["cta"], F_BODY, 820, 2)
-        bbox = draw.multiline_textbbox((540, 924), rendered, font=F_BODY, anchor="mm", align="center", spacing=8)
-        draw.multiline_text((540, 924), rendered, font=F_BODY, fill=PAPER, anchor="mm", align="center", spacing=8)
+        bbox = draw_centered(draw, (540, 923), rendered, F_BODY, PAPER, align="center")
         self.record(page, "cta", bbox, cta_box)
         sources = "출처 · " + " · ".join(card["sources"])
         self.draw_wrapped(draw, page, "sources", (72, 1022), sources, F_LABEL, MUTED, 900, 2, (72, 1010, 1008, 1090))

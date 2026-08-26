@@ -31,13 +31,17 @@
       "rank-bars"
     ],
     "impact": [
-      "featured-plus-grid"
+      "audience-rows"
     ],
     "cta": [
       "calendar-grid",
       "checklist-stack"
     ]
   },
+  "coverVisual": [
+    "hero-asset",
+    "date-rail"
+  ],
   "canvas": [
     1080,
     1350
