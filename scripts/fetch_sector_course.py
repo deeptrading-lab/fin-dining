@@ -62,7 +62,8 @@ def request_once(base: str, path: str, timeout: float) -> tuple[dict, str]:
         request.add_header("Cookie", cookie)
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8")), response.headers.get("X-Data-Source", "?")
+            body = response.read().decode("utf-8")
+            source = response.headers.get("X-Data-Source", "?")
     except urllib.error.HTTPError as error:
         if error.code == 401:
             raise SystemExit(
@@ -71,6 +72,16 @@ def request_once(base: str, path: str, timeout: float) -> tuple[dict, str]:
         raise SystemExit(f"{path} {error.code} {error.reason}") from error
     except urllib.error.URLError as error:
         raise SystemExit(f"{path} 연결 실패 — {error.reason}. dev 서버가 떠 있는지 확인하세요.") from error
+    except TimeoutError as error:
+        # 헤더를 받은 뒤 본문에서 멈추면 URLError 가 아니라 TimeoutError 로 올라온다.
+        raise SystemExit(f"{path} 응답이 {timeout:g}초 안에 오지 않았습니다.") from error
+
+    try:
+        return json.loads(body), source
+    except json.JSONDecodeError as error:
+        # 게이트가 로그인 화면을 200 HTML 로 돌려주는 경우가 있다. 그때도 원인을 짚어 준다.
+        hint = " 로그인 화면을 받은 것 같습니다 — FINSIGHT_COOKIE 를 확인하세요." if "<html" in body[:200].lower() else ""
+        raise SystemExit(f"{path} 응답이 JSON 이 아닙니다.{hint}") from error
 
 
 def fetch(base: str, path: str, timeout: float, allow_mock: bool = False) -> dict:
@@ -155,7 +166,14 @@ def write_copy(payload: dict, out_dir: Path) -> list[Path]:
     caption = "\n".join(lines) + "\n"
 
     second = cover["courses"][[c["label"] for c in cover["courses"]].index("SIGNATURE")]
-    top_dish = next(d for d in dishes if d["course"] == "MAIN")
+    # 업종을 5개 확보했어도 그 업종의 오른 종목이 둘에 못 미치면 접시가 빠진다. MAIN 접시가 없다고
+    # 원고 생성이 죽어서는 안 되므로, 있으면 상세를 쓰고 없으면 커버의 값만으로 문장을 만든다.
+    main_dish = next((d for d in dishes if d["course"] == "MAIN"), None)
+    main_line = (
+        f"{main_dish['breadth']}. 가장 크게 오른 건 {main_dish['rows'][0]['name']}, "
+        f"{main_dish['rows'][0]['pct']} 입니다."
+        if main_dish else f"오늘 가장 크게 오른 업종입니다."
+    )
     reels = f"""# FIN DINING 릴스 · {payload['date']} 주도 섹터
 
 총 길이 22초. 화면 문구와 내레이션을 분리한다. 영상 편집은 별도로 한다.
@@ -163,17 +181,17 @@ def write_copy(payload: dict, out_dir: Path) -> list[Path]:
 ## 0~4초 · 후크
 
 - 화면: `{day_label} 주도 섹터`
-- 내레이션: {day_label}, 가장 크게 오른 업종은 {lead['name']}입니다.
+- 내레이션: {day_label}, 가장 크게 오른 업종은 {lead['name']} 입니다.
 
 ## 4~9초 · 메인
 
 - 화면: `{lead['name']} {lead['pct']}`
-- 내레이션: {top_dish['breadth']}. 가장 크게 오른 건 {top_dish['rows'][0]['name']}, {top_dish['rows'][0]['pct']} 입니다.
+- 내레이션: {main_line}
 
 ## 9~15초 · 나머지 코스
 
 - 화면: `{' · '.join(c['name'] + ' ' + c['pct'] for c in cover['courses'] if not c['main'])}`
-- 내레이션: 뒤이어 {second['name']}가 {second['pct']} 로 따라붙었습니다.
+- 내레이션: 뒤이어 따라붙은 건 {second['name']}, {second['pct']} 입니다.
 
 ## 15~19초 · 전체
 

@@ -87,7 +87,13 @@ def cut(src: Image.Image, box: tuple[int, int, int, int], threshold: int) -> Ima
             if px[x, y] != MARK:
                 solid[y * w + x] = 1
 
-    label, best_id, _ = largest_component(solid, w, h)
+    label, best_id, size = largest_component(solid, w, h)
+    if not best_id:
+        # 윤곽선이 옅어 flood fill 이 대상 안까지 들어간 경우다. 이대로 두면 라벨 0(=배경)이 통째로
+        # 불투명해져 사각형 이미지가 나온다. 조용히 잘못된 에셋을 내보내느니 멈춘다.
+        raise ValueError(f"배경을 지우고 남은 것이 없다 — threshold 를 낮춰야 한다 (crop {box})")
+    if size < (w * h) * 0.03:
+        raise ValueError(f"남은 덩어리가 너무 작다({size:,}px) — crop 영역이 빗나갔을 수 있다 {box}")
     alpha = Image.new("L", (w, h), 0)
     ap = alpha.load()
     for i in range(w * h):
