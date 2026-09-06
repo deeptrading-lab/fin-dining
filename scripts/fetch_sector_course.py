@@ -110,7 +110,7 @@ def dish_dialogue(sector: dict, stocks: list[dict]) -> list:
     return [
         (sector["name"], "name"), (" 종목 ", "body"), (f"{sector['total']}개", "body"),
         (" 가운데 ", "body"), (f"{sector['up']}개", "up"), ("가 올랐어요. 가장 크게 오른 건 ", "body"),
-        (lead["name"], "name"), (", ", "body"), (signed(lead["changePct"]), "up"), ("입니다.", "body"),
+        (lead["name"], "name"), (", ", "body"), (signed(lead["changePct"]), "up"), (" 입니다.", "body"),
     ]
 
 
@@ -132,7 +132,7 @@ def write_copy(payload: dict, out_dir: Path) -> list[Path]:
     lines = [
         f"{day_label}, 오른 업종 다섯을 코스로 담았습니다.",
         "",
-        f"메인은 {lead['name']}, {lead['pct']}입니다.",
+        f"메인은 {lead['name']}, {lead['pct']} 입니다.",
         "",
     ]
     # 숫자 뒤 조사는 읽는 소리의 받침에 따라 갈린다(10 = "십" 이라 "10은"). 단위 "개"를 붙이면
@@ -168,12 +168,12 @@ def write_copy(payload: dict, out_dir: Path) -> list[Path]:
 ## 4~9초 · 메인
 
 - 화면: `{lead['name']} {lead['pct']}`
-- 내레이션: {top_dish['breadth']}. 가장 크게 오른 건 {top_dish['rows'][0]['name']}, {top_dish['rows'][0]['pct']}입니다.
+- 내레이션: {top_dish['breadth']}. 가장 크게 오른 건 {top_dish['rows'][0]['name']}, {top_dish['rows'][0]['pct']} 입니다.
 
 ## 9~15초 · 나머지 코스
 
 - 화면: `{' · '.join(c['name'] + ' ' + c['pct'] for c in cover['courses'] if not c['main'])}`
-- 내레이션: 뒤이어 {second['name']}가 {second['pct']}로 따라붙었습니다.
+- 내레이션: 뒤이어 {second['name']}가 {second['pct']} 로 따라붙었습니다.
 
 ## 15~19초 · 전체
 
@@ -248,7 +248,7 @@ def build(base: str, day: date, day_key: str, timeout: float, allow_mock: bool) 
         ],
         "dialogue": [
             (f"{day_label} 주도 섹터 다섯 코스, 지금 나갑니다. 메인은 ", "body"),
-            (lead["name"], "name"), (", ", "body"), (signed(lead["changePct"]), "up"), ("입니다.", "body"),
+            (lead["name"], "name"), (", ", "body"), (signed(lead["changePct"]), "up"), (" 입니다.", "body"),
         ],
         "footer_left": foot_left,
         "footer_right": "KOSPI 업종 등락",
@@ -295,7 +295,7 @@ def build(base: str, day: date, day_key: str, timeout: float, allow_mock: bool) 
         "dialogue": [
             ("오늘 오른 업종 ", "body"), (f"{len(board_rows)}개", "up"),
             ("를 순서대로 담았어요. 1위는 ", "body"), (lead["name"], "name"), (", ", "body"),
-            (signed(lead["changePct"]), "up"), ("입니다.", "body"),
+            (signed(lead["changePct"]), "up"), (" 입니다.", "body"),
         ],
         "footer_left": foot_left,
         "footer_right": "출처 한국투자증권",
