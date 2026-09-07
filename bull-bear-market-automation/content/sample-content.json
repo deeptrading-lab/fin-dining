@@ -1,0 +1,106 @@
+{
+  "meta": {
+    "date": "2026-09-04",
+    "status": "DESIGN SAMPLE",
+    "market": "KOSPI 업종 등락",
+    "source": "한국투자증권",
+    "cards": 7
+  },
+  "cover": {
+    "eyebrow": "오늘의 산업 코스",
+    "note": "9월 4일 금요일 주도 섹터 다섯 코스입니다. 빨강은 상승, 파랑은 하락을 뜻합니다."
+  },
+  "courses": [
+    {
+      "course": "AMUSE BOUCHE",
+      "theme": "기계·장비",
+      "direction": "up",
+      "total": 29,
+      "directionalCount": 21,
+      "change": "+2.21%",
+      "items": [
+        { "name": "DKME", "price": "1,492", "change": "+11.26%" },
+        { "name": "한미반도체", "price": "230,000", "change": "+9.26%" },
+        { "name": "화천기계", "price": "3,040", "change": "+5.19%" },
+        { "name": "TYM", "price": "7,520", "change": "+4.74%" },
+        { "name": "HD건설기계", "price": "140,000", "change": "+3.47%" }
+      ]
+    },
+    {
+      "course": "STARTER",
+      "theme": "전기·전자",
+      "direction": "up",
+      "total": 80,
+      "directionalCount": 61,
+      "change": "+2.44%",
+      "items": [
+        { "name": "두산퓨얼셀", "price": "43,850", "change": "+12.44%" },
+        { "name": "비에이치", "price": "21,850", "change": "+10.75%" },
+        { "name": "자화전자", "price": "30,600", "change": "+9.48%" },
+        { "name": "HD현대에너지솔루션", "price": "138,900", "change": "+7.26%" },
+        { "name": "이수페타시스", "price": "111,100", "change": "+4.81%" }
+      ]
+    },
+    {
+      "course": "SIGNATURE",
+      "theme": "IT 서비스",
+      "direction": "down",
+      "total": 25,
+      "directionalCount": 17,
+      "change": "−2.65%",
+      "items": [
+        { "name": "하락종목 A", "price": "24,500", "change": "−8.50%" },
+        { "name": "하락종목 B", "price": "13,860", "change": "−6.70%" },
+        { "name": "하락종목 C", "price": "238,000", "change": "−5.31%" },
+        { "name": "하락종목 D", "price": "18,710", "change": "−3.89%" },
+        { "name": "하락종목 E", "price": "7,200", "change": "−2.40%" }
+      ]
+    },
+    {
+      "course": "MAIN",
+      "theme": "의료·정밀기기",
+      "direction": "up",
+      "total": 8,
+      "directionalCount": 7,
+      "change": "+3.86%",
+      "items": [
+        { "name": "케이씨텍", "price": "68,100", "change": "+9.13%" },
+        { "name": "케이씨", "price": "38,000", "change": "+3.26%" },
+        { "name": "디아이", "price": "31,250", "change": "+2.63%" },
+        { "name": "미래산업", "price": "6,270", "change": "+1.62%" },
+        { "name": "우진", "price": "12,900", "change": "+1.49%" }
+      ]
+    },
+    {
+      "course": "DESSERT",
+      "theme": "통신",
+      "direction": "down",
+      "total": 4,
+      "directionalCount": 2,
+      "change": "−2.18%",
+      "items": [
+        { "name": "하락종목 F", "price": "54,300", "change": "−3.93%" },
+        { "name": "하락종목 G", "price": "92,500", "change": "−0.93%" }
+      ]
+    }
+  ],
+  "menu": {
+    "course": "TODAY'S MENU",
+    "eyebrow": "오른 업종 상위 10",
+    "title": "지금 뜨는 산업",
+    "direction": "up",
+    "items": [
+      { "name": "의료·정밀기기", "change": "+3.86%" },
+      { "name": "금융", "change": "+2.65%" },
+      { "name": "전기·전자", "change": "+2.44%" },
+      { "name": "기계·장비", "change": "+2.21%" },
+      { "name": "화학", "change": "+2.18%" },
+      { "name": "제조", "change": "+1.93%" },
+      { "name": "증권", "change": "+1.87%" },
+      { "name": "오락·문화", "change": "+1.33%" },
+      { "name": "운송·창고", "change": "+0.97%" },
+      { "name": "종이·목재", "change": "+0.91%" }
+    ]
+  },
+  "disclaimer": "디자인 검토용 샘플입니다. 하락 예시의 종목명과 수치는 실제 시장 데이터가 아닙니다."
+}

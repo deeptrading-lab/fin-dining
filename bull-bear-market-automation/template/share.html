@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FIN DINING · Bull & Bear Course</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #fffefa;
+      --page: #eeeeeb;
+      --ink: #151515;
+      --muted: #777777;
+      --line: #c7c7c1;
+      --soft: #efefeb;
+      --up: #e23b35;
+      --down: #3569d4;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: var(--page);
+      color: var(--ink);
+      padding: 42px 22px 70px;
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    }
+
+    .page-head {
+      max-width: 1280px;
+      margin: 0 auto 34px;
+      text-align: center;
+    }
+    .page-head .brand {
+      font-size: 13px;
+      letter-spacing: .42em;
+      color: var(--muted);
+    }
+    .page-head h1 {
+      margin: 10px 0 0;
+      font-family: "New York", Georgia, serif;
+      font-size: 44px;
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+    .page-head p { margin: 12px 0 0; color: var(--muted); }
+
+    .gallery {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 32px;
+      align-items: start;
+    }
+    .gallery-item { margin: 0; min-width: 0; }
+    .gallery-item figcaption {
+      padding: 13px 5px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      color: var(--ink);
+    }
+    .gallery-item figcaption span {
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: .1em;
+    }
+
+    .post-card {
+      container-type: inline-size;
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      background: var(--paper);
+      color: var(--ink);
+      box-shadow: 0 10px 28px rgb(0 0 0 / 10%);
+    }
+    .post-card::before,
+    .post-card::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      z-index: 20;
+    }
+    .post-card::before { inset: 4.2cqw; border: .22cqw solid var(--ink); }
+    .post-card::after { inset: 5cqw; border: .11cqw solid var(--line); }
+
+    .card-inner {
+      position: absolute;
+      inset: 0;
+      padding: 7.4cqw 9.3cqw 7cqw;
+    }
+    .card-top {
+      height: 7.8cqw;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      border-bottom: .12cqw solid var(--line);
+      font-family: "New York", Georgia, serif;
+      font-size: 1.7cqw;
+      letter-spacing: .35em;
+    }
+    .card-top .course { text-align: right; }
+    .sample-badge {
+      position: absolute;
+      z-index: 30;
+      top: 2.4cqw;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.05cqw;
+      letter-spacing: .18em;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .theme-meta {
+      margin-top: 2.5cqw;
+      color: var(--muted);
+      font-size: 1.75cqw;
+      letter-spacing: .26em;
+    }
+    .theme-title {
+      margin: 1.2cqw 0 0;
+      font-size: 4.15cqw;
+      line-height: 1.05;
+      letter-spacing: -.04em;
+    }
+
+    .table-setting {
+      position: absolute;
+      top: 23.8cqw;
+      left: 8cqw;
+      right: 8cqw;
+      height: 58cqw;
+    }
+    .plate {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 59cqw;
+      height: 59cqw;
+      transform: translate(-50%, -50%);
+      border: .28cqw solid var(--ink);
+      border-radius: 50%;
+      background: var(--paper);
+      box-shadow:
+        inset 0 0 0 1.2cqw var(--paper),
+        inset 0 0 0 1.35cqw var(--line),
+        inset 0 0 0 2.4cqw var(--paper),
+        inset 0 0 0 2.52cqw var(--ink);
+    }
+    .plate::after {
+      content: "";
+      position: absolute;
+      inset: 3.35cqw;
+      border: .13cqw dashed var(--line);
+      border-radius: 50%;
+    }
+    .stock-list {
+      position: absolute;
+      z-index: 2;
+      left: 50%;
+      top: 50%;
+      width: 44cqw;
+      transform: translate(-50%, -50%);
+      display: grid;
+      gap: 1.4cqw;
+    }
+    .stock-list.sparse { gap: 3cqw; }
+    .stock-row {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) .72fr .82fr;
+      align-items: baseline;
+      column-gap: 1cqw;
+      font-size: 2.25cqw;
+      line-height: 1.14;
+    }
+    .stock-row:first-child {
+      padding-bottom: 1.2cqw;
+      border-bottom: .12cqw solid var(--line);
+      font-weight: 750;
+      font-size: 2.65cqw;
+    }
+    .stock-name {
+      min-width: 0;
+      white-space: nowrap;
+      letter-spacing: -.04em;
+    }
+    .stock-name.long { font-size: .76em; }
+    .stock-price {
+      color: var(--muted);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .stock-change {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .tone-up .accent, .tone-up .stock-change { color: var(--up); }
+    .tone-down .accent, .tone-down .stock-change { color: var(--down); }
+
+    .cutlery {
+      position: absolute;
+      top: 14cqw;
+      width: 6.5cqw;
+      height: 31cqw;
+      stroke: var(--ink);
+      stroke-width: 2.4;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .cutlery.fork { left: 0; }
+    .cutlery.knife { right: 0; }
+
+    .chef-zone {
+      position: absolute;
+      left: 8.7cqw;
+      right: 8.7cqw;
+      bottom: 13.2cqw;
+      height: 20.5cqw;
+      z-index: 5;
+    }
+    .chef {
+      position: absolute;
+      bottom: -1.6cqw;
+      width: 20.5cqw;
+      height: auto;
+      object-fit: contain;
+      z-index: 3;
+    }
+    .tone-up .chef { right: -1.2cqw; }
+    .tone-down .chef { left: -1.2cqw; }
+    .speech {
+      position: absolute;
+      top: 1.2cqw;
+      min-height: 16.5cqw;
+      padding: 2.2cqw 2.5cqw;
+      border: .18cqw solid var(--ink);
+      border-radius: 2.5cqw;
+      background: var(--paper);
+      font-size: 2.05cqw;
+      line-height: 1.52;
+    }
+    .tone-up .speech { left: 0; width: 64cqw; }
+    .tone-down .speech { right: 0; width: 64cqw; }
+    .speech::before,
+    .speech::after {
+      content: "";
+      position: absolute;
+      top: 8.2cqw;
+      width: 0;
+      height: 0;
+      border-top: 1.25cqw solid transparent;
+      border-bottom: 1.25cqw solid transparent;
+    }
+    .tone-up .speech::before { right: -1.45cqw; border-left: 1.45cqw solid var(--ink); }
+    .tone-up .speech::after { right: -1.18cqw; border-left: 1.4cqw solid var(--paper); }
+    .tone-down .speech::before { left: -1.45cqw; border-right: 1.45cqw solid var(--ink); }
+    .tone-down .speech::after { left: -1.18cqw; border-right: 1.4cqw solid var(--paper); }
+    .chef-label {
+      margin-bottom: .7cqw;
+      font-family: "New York", Georgia, serif;
+      font-size: 1.3cqw;
+      letter-spacing: .28em;
+    }
+    .tone-up .chef-label { color: var(--up); }
+    .tone-down .chef-label { color: var(--down); }
+
+    .card-foot {
+      position: absolute;
+      left: 9.3cqw;
+      right: 9.3cqw;
+      bottom: 7.2cqw;
+      padding-top: 2.2cqw;
+      border-top: .12cqw solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 1.55cqw;
+      letter-spacing: .05em;
+    }
+
+    .cover .card-inner { text-align: center; }
+    .cover-brand {
+      margin-top: 1.5cqw;
+      font-size: 1.75cqw;
+      letter-spacing: .45em;
+      color: var(--muted);
+    }
+    .cover h2 {
+      margin: 0;
+      margin-top: 1.8cqw;
+      font-family: "New York", Georgia, serif;
+      font-size: 6.2cqw;
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+    .cover-eyebrow {
+      margin-top: 1.2cqw;
+      font-size: 2.2cqw;
+      letter-spacing: .28em;
+    }
+    .course-board {
+      width: 62cqw;
+      margin: 7.5cqw auto 0;
+      display: grid;
+      gap: 2.25cqw;
+    }
+    .course-board-row {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr auto;
+      align-items: baseline;
+      gap: 1cqw;
+      text-align: left;
+    }
+    .course-board-row .label {
+      color: var(--muted);
+      font-family: "New York", Georgia, serif;
+      font-size: 1.6cqw;
+      letter-spacing: .25em;
+    }
+    .course-board-row .name {
+      font-size: 2.65cqw;
+      font-weight: 700;
+      letter-spacing: -.03em;
+    }
+    .course-board-row .value {
+      font-size: 2.4cqw;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .course-board-row.main {
+      margin: .4cqw -4cqw;
+      padding: 2.2cqw 4cqw;
+      border-top: .12cqw solid var(--line);
+      border-bottom: .12cqw solid var(--line);
+    }
+    .value.up { color: var(--up); }
+    .value.down { color: var(--down); }
+    .cover-chefs {
+      position: absolute;
+      left: 8.5cqw;
+      right: 8.5cqw;
+      bottom: 13.7cqw;
+      height: 21cqw;
+    }
+    .cover-chefs img {
+      position: absolute;
+      bottom: -1.5cqw;
+      width: 19cqw;
+    }
+    .cover-chefs .bear { left: 0; }
+    .cover-chefs .bull { right: 0; }
+    .cover-note {
+      position: absolute;
+      left: 21cqw;
+      right: 21cqw;
+      top: 1.4cqw;
+      min-height: 15.5cqw;
+      padding: 2.4cqw;
+      border: .18cqw solid var(--ink);
+      border-radius: 2.5cqw;
+      background: var(--paper);
+      font-size: 1.95cqw;
+      line-height: 1.55;
+      text-align: left;
+    }
+
+    .menu-list {
+      margin-top: 3.2cqw;
+      display: grid;
+      gap: 2.1cqw;
+    }
+    .menu-row {
+      display: grid;
+      grid-template-columns: 4cqw auto 1fr auto;
+      align-items: baseline;
+      gap: 1cqw;
+    }
+    .menu-row .rank {
+      color: var(--muted);
+      font-family: "New York", Georgia, serif;
+      font-size: 1.55cqw;
+      letter-spacing: .12em;
+    }
+    .menu-row .name { font-size: 2.45cqw; font-weight: 700; white-space: nowrap; }
+    .menu-row .dots { border-bottom: .13cqw dotted var(--line); transform: translateY(-.45cqw); }
+    .menu-row .change { font-size: 2.4cqw; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .page-foot {
+      max-width: 1280px;
+      margin: 42px auto 0;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    .error {
+      max-width: 720px;
+      margin: 80px auto;
+      padding: 28px;
+      border: 2px solid var(--ink);
+      background: white;
+    }
+
+    body.single {
+      padding: 0;
+      background: var(--paper);
+      overflow: auto;
+    }
+    body.single .page-head,
+    body.single .page-foot,
+    body.single .gallery-item:not(.selected),
+    body.single figcaption { display: none; }
+    body.single .gallery {
+      display: block;
+      width: 1080px;
+      max-width: none;
+      margin: 0;
+    }
+    body.single .gallery-item.selected { width: 1080px; }
+    body.capture .gallery { width: 960px; }
+    body.capture .gallery-item.selected { width: 960px; }
+
+    body.compact { padding: 24px; }
+    body.compact .page-head { margin-bottom: 18px; }
+    body.compact .page-head h1 { font-size: 30px; }
+    body.compact .page-head p,
+    body.compact .page-foot,
+    body.compact figcaption { display: none; }
+    body.compact .gallery {
+      width: 1352px;
+      max-width: 1352px;
+      grid-template-columns: repeat(4, 320px);
+      gap: 24px;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 22px 14px 50px; }
+      .page-head h1 { font-size: 34px; }
+      .gallery { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="page-head">
+    <div class="brand">FINSIGHT</div>
+    <h1>FIN DINING</h1>
+    <p id="page-meta">Bull & Bear 코스 디자인 샘플</p>
+  </header>
+  <main class="gallery" id="gallery"></main>
+  <footer class="page-foot" id="page-foot"></footer>
+
+  <script>
+    const FALLBACK = {
+      meta: { date: "2026-09-04", status: "DESIGN SAMPLE", market: "KOSPI 업종 등락", source: "한국투자증권", cards: 7 },
+      cover: { eyebrow: "오늘의 산업 코스", note: "9월 4일 금요일 주도 섹터 다섯 코스입니다. 빨강은 상승, 파랑은 하락을 뜻합니다." },
+      courses: [
+        { course: "AMUSE BOUCHE", theme: "기계·장비", direction: "up", total: 29, directionalCount: 21, change: "+2.21%", items: [{name:"DKME",price:"1,492",change:"+11.26%"},{name:"한미반도체",price:"230,000",change:"+9.26%"},{name:"화천기계",price:"3,040",change:"+5.19%"},{name:"TYM",price:"7,520",change:"+4.74%"},{name:"HD건설기계",price:"140,000",change:"+3.47%"}] },
+        { course: "STARTER", theme: "전기·전자", direction: "up", total: 80, directionalCount: 61, change: "+2.44%", items: [{name:"두산퓨얼셀",price:"43,850",change:"+12.44%"},{name:"비에이치",price:"21,850",change:"+10.75%"},{name:"자화전자",price:"30,600",change:"+9.48%"},{name:"HD현대에너지솔루션",price:"138,900",change:"+7.26%"},{name:"이수페타시스",price:"111,100",change:"+4.81%"}] },
+        { course: "SIGNATURE", theme: "IT 서비스", direction: "down", total: 25, directionalCount: 17, change: "−2.65%", items: [{name:"하락종목 A",price:"24,500",change:"−8.50%"},{name:"하락종목 B",price:"13,860",change:"−6.70%"},{name:"하락종목 C",price:"238,000",change:"−5.31%"},{name:"하락종목 D",price:"18,710",change:"−3.89%"},{name:"하락종목 E",price:"7,200",change:"−2.40%"}] },
+        { course: "MAIN", theme: "의료·정밀기기", direction: "up", total: 8, directionalCount: 7, change: "+3.86%", items: [{name:"케이씨텍",price:"68,100",change:"+9.13%"},{name:"케이씨",price:"38,000",change:"+3.26%"},{name:"디아이",price:"31,250",change:"+2.63%"},{name:"미래산업",price:"6,270",change:"+1.62%"},{name:"우진",price:"12,900",change:"+1.49%"}] },
+        { course: "DESSERT", theme: "통신", direction: "down", total: 4, directionalCount: 2, change: "−2.18%", items: [{name:"하락종목 F",price:"54,300",change:"−3.93%"},{name:"하락종목 G",price:"92,500",change:"−0.93%"}] }
+      ],
+      menu: { course: "TODAY'S MENU", eyebrow: "오른 업종 상위 10", title: "지금 뜨는 산업", direction: "up", items: [{name:"의료·정밀기기",change:"+3.86%"},{name:"금융",change:"+2.65%"},{name:"전기·전자",change:"+2.44%"},{name:"기계·장비",change:"+2.21%"},{name:"화학",change:"+2.18%"},{name:"제조",change:"+1.93%"},{name:"증권",change:"+1.87%"},{name:"오락·문화",change:"+1.33%"},{name:"운송·창고",change:"+0.97%"},{name:"종이·목재",change:"+0.91%"}] },
+      disclaimer: "디자인 검토용 샘플입니다. 하락 예시는 실제 시장 데이터가 아닙니다."
+    };
+
+    const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
+    const asset = (name) => "../characters/" + name;
+    const chefAsset = (direction) => direction === "up"
+      ? asset("bull-chef-red-scarf-spatula.png")
+      : asset("bear-chef-blue-scarf-whisk.png");
+    const directionWord = (direction) => direction === "up" ? "상승" : "하락";
+    const actionWord = (direction) => direction === "up" ? "올랐어요" : "내렸어요";
+    const biggestWord = (direction) => direction === "up" ? "오른" : "내린";
+    const chefName = (direction) => direction === "up" ? "CHEF BULL" : "CHEF BEAR";
+
+    function cutlery() {
+      return '<svg class="cutlery fork" viewBox="0 0 60 260" aria-hidden="true"><path d="M17 8v55M29 8v55M41 8v55M12 8v62c0 20 34 20 34 0V8M29 88v154M20 242h18"/></svg>' +
+        '<svg class="cutlery knife" viewBox="0 0 60 260" aria-hidden="true"><path d="M39 8C17 31 13 69 18 103h22V8ZM39 103v139M29 242h20"/></svg>';
+    }
+
+    function frameTop(course) {
+      return '<div class="sample-badge">DESIGN SAMPLE</div><div class="card-top"><span>FIN DINING</span><span class="course">' + esc(course) + '</span></div>';
+    }
+
+    function foot(meta, right) {
+      return '<div class="card-foot"><span>' + esc(meta.date.replaceAll("-", " · ")) + ' 종가 기준</span><span>' + esc(right) + '</span></div>';
+    }
+
+    function chefZone(direction, message) {
+      return '<div class="chef-zone"><img class="chef" src="' + chefAsset(direction) + '" alt="' + (direction === "up" ? "뒤집개를 든 황소 요리사" : "거품기를 든 곰 요리사") + '">' +
+        '<div class="speech"><div class="chef-label">' + chefName(direction) + '</div>' + message + '</div></div>';
+    }
+
+    function coverCard(data) {
+      const rows = data.courses.map((item) => '<div class="course-board-row ' + (item.course === "MAIN" ? "main" : "") + '">' +
+        '<span class="label">' + esc(item.course) + '</span><span class="name">' + esc(item.theme) + '</span><span class="value ' + esc(item.direction) + '">' + esc(item.change) + '</span></div>').join("");
+      return '<article class="post-card cover"><div class="sample-badge">' + esc(data.meta.status) + '</div><div class="card-inner">' +
+        '<div class="cover-brand">FINSIGHT</div><h2>FIN DINING</h2><div class="cover-eyebrow">' + esc(data.cover.eyebrow) + '</div>' +
+        '<div class="course-board">' + rows + '</div><div class="cover-chefs">' +
+        '<img class="bear" src="' + chefAsset("down") + '" alt="거품기를 든 곰 요리사"><div class="cover-note">' + esc(data.cover.note) + '</div>' +
+        '<img class="bull" src="' + chefAsset("up") + '" alt="뒤집개를 든 황소 요리사"></div>' +
+        foot(data.meta, data.meta.market) + '</div></article>';
+    }
+
+    function courseCard(item, meta) {
+      const rows = item.items.map((stock, index) => '<div class="stock-row">' +
+        '<span class="stock-name ' + (stock.name.length > 10 ? "long" : "") + '">' + esc(stock.name) + '</span>' +
+        '<span class="stock-price">' + esc(stock.price) + '</span><span class="stock-change">' + esc(stock.change) + '</span></div>').join("");
+      const top = item.items[0];
+      const message = '<b>' + esc(item.theme) + '</b> 종목 ' + esc(item.total) + '개 가운데 <b class="accent">' + esc(item.directionalCount) + '개</b>가 ' + actionWord(item.direction) +
+        '. 가장 크게 ' + biggestWord(item.direction) + ' 건 <b>' + esc(top.name) + '</b>, <b class="accent">' + esc(top.change) + '</b>입니다.';
+      return '<article class="post-card tone-' + esc(item.direction) + '">' +
+        '<div class="card-inner">' + frameTop(item.course) +
+        '<div class="theme-meta">' + esc(item.total) + '개 중 ' + esc(item.directionalCount) + '개 ' + directionWord(item.direction) + '</div>' +
+        '<h2 class="theme-title">' + esc(item.theme) + '</h2>' +
+        '<div class="table-setting">' + cutlery() + '<div class="plate"><div class="stock-list ' + (item.items.length < 4 ? "sparse" : "") + '">' + rows + '</div></div></div>' +
+        chefZone(item.direction, message) + foot(meta, directionWord(item.direction) + ' 종목 ' + item.items.length + '개') +
+        '</div></article>';
+    }
+
+    function menuCard(menu, meta) {
+      const rows = menu.items.map((item, index) => '<div class="menu-row"><span class="rank">' + String(index + 1).padStart(2, "0") + '</span>' +
+        '<span class="name">' + esc(item.name) + '</span><span class="dots"></span><span class="change accent">' + esc(item.change) + '</span></div>').join("");
+      const first = menu.items[0];
+      const message = '오늘 ' + (menu.direction === "up" ? "오른" : "내린") + ' 업종 <b class="accent">' + menu.items.length + '개</b>를 순서대로 담았습니다. 1위는 <b>' + esc(first.name) + '</b>, <b class="accent">' + esc(first.change) + '</b>입니다.';
+      return '<article class="post-card menu-card tone-' + esc(menu.direction) + '"><div class="card-inner">' +
+        frameTop(menu.course) + '<div class="theme-meta">' + esc(menu.eyebrow) + '</div><h2 class="theme-title">' + esc(menu.title) + '</h2>' +
+        '<div class="menu-list">' + rows + '</div>' + chefZone(menu.direction, message) + foot(meta, '출처 ' + meta.source) +
+        '</div></article>';
+    }
+
+    function item(card, number, title, subtitle) {
+      return '<figure class="gallery-item" data-card="' + number + '">' + card + '<figcaption><span>' + String(number).padStart(2, "0") + '</span><b>' + esc(title) + '</b><span>' + esc(subtitle) + '</span></figcaption></figure>';
+    }
+
+    function render(data) {
+      const cards = [item(coverCard(data), 1, "커버 · 오늘의 메뉴판", "다섯 코스의 방향과 등락률")];
+      data.courses.forEach((course, index) => cards.push(item(courseCard(course, data.meta), index + 2, course.course + " · " + course.theme, directionWord(course.direction) + " 종목 " + course.items.length + "개")));
+      cards.push(item(menuCard(data.menu, data.meta), 7, "오늘의 메뉴 · 업종 등락 랭킹", data.menu.eyebrow));
+      document.getElementById("gallery").innerHTML = cards.join("");
+      document.getElementById("page-meta").textContent = data.meta.date + " 종가 기준 · 중앙 접시형 7장";
+      document.getElementById("page-foot").textContent = data.disclaimer;
+
+      const params = new URLSearchParams(location.search);
+      const selected = Number(params.get("card"));
+      if (selected >= 1 && selected <= cards.length) {
+        document.body.classList.add("single");
+        if (params.get("capture") === "1") document.body.classList.add("capture");
+        const target = document.querySelector('[data-card="' + selected + '"]');
+        if (target) target.classList.add("selected");
+      } else if (params.get("compact") === "1") {
+        document.body.classList.add("compact");
+      }
+    }
+
+    fetch("../content/sample-content.json")
+      .then((response) => {
+        if (!response.ok) throw new Error("content load failed");
+        return response.json();
+      })
+      .then(render)
+      .catch(() => render(FALLBACK));
+  </script>
+</body>
+</html>
