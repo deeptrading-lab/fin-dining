@@ -8,6 +8,7 @@
     :root {
       color-scheme: light;
       --paper: #fffefa;
+      --card-bg: #fbf8f2; /* Approved warm ivory · 2026-09-07 */
       --page: #eeeeeb;
       --ink: #151515;
       --muted: #777777;
@@ -16,6 +17,11 @@
       --up: #e23b35;
       --down: #3569d4;
     }
+
+    :root[data-palette="ivory"] { --card-bg: #fbf8f2; }
+    :root[data-palette="blue"] { --card-bg: #f6f9fc; }
+    :root[data-palette="sage"] { --card-bg: #f7faf7; }
+    :root[data-palette="blush"] { --card-bg: #fcf7f6; }
 
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
@@ -73,7 +79,7 @@
       width: 100%;
       aspect-ratio: 4 / 5;
       overflow: hidden;
-      background: var(--paper);
+      background: var(--card-bg);
       color: var(--ink);
       box-shadow: 0 10px 28px rgb(0 0 0 / 10%);
     }
@@ -225,19 +231,48 @@
       height: 20.5cqw;
       z-index: 5;
     }
-    .chef {
-      position: absolute;
-      bottom: -1.6cqw;
-      width: 20.5cqw;
-      height: auto;
-      object-fit: contain;
+    /* Bounds exclude transparent padding; both chefs use the same visible height.
+       Speech-tail tip to visible silhouette: 2.6 - 1.45 = 1.15cqw. */
+    .chef-sprite {
+      --chef-height: 23cqw;
+      position: relative;
+      display: block;
+      flex: none;
+      height: var(--chef-height);
+      width: calc(var(--chef-height) * var(--aspect));
+      overflow: hidden;
       z-index: 3;
     }
-    .tone-up .chef { right: -1.2cqw; }
-    .tone-down .chef { left: -1.2cqw; }
-    .speech {
+    .chef-sprite.bull {
+      --aspect: 0.76565; /* visible bounds: 67,26–1021,1272 in 1200×1310 */
+      --image-width: 125.7862%; --image-left: -7.0231%; --image-top: -2.0867%;
+    }
+    .chef-sprite.bear {
+      --aspect: 0.68318; /* visible bounds: 111,6–980,1278 in 1218×1292 */
+      --image-width: 140.1611%; --image-left: -12.7733%; --image-top: -0.4717%;
+    }
+    .chef-sprite img,
+    .chef-sprite .chef-fill {
       position: absolute;
-      top: 1.2cqw;
+      width: var(--image-width);
+      max-width: none;
+      height: auto;
+      left: var(--image-left);
+      top: var(--image-top);
+    }
+    .chef-zone {
+      display: flex;
+      align-items: flex-end;
+      gap: 2.6cqw;
+    }
+    .chef-zone .chef-sprite { bottom: -1.6cqw; }
+    .tone-up .chef-zone { flex-direction: row-reverse; }
+    .speech {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      align-self: flex-start;
+      margin-top: 1.2cqw;
       min-height: 16.5cqw;
       padding: 2.2cqw 2.5cqw;
       border: .18cqw solid var(--ink);
@@ -246,8 +281,6 @@
       font-size: 2.05cqw;
       line-height: 1.52;
     }
-    .tone-up .speech { left: 0; width: 64cqw; }
-    .tone-down .speech { right: 0; width: 64cqw; }
     .speech::before,
     .speech::after {
       content: "";
@@ -349,18 +382,18 @@
       bottom: 13.7cqw;
       height: 21cqw;
     }
-    .cover-chefs img {
-      position: absolute;
-      bottom: -1.5cqw;
-      width: 19cqw;
+    .cover-chefs {
+      display: grid;
+      grid-template-columns: 18cqw minmax(0, 1fr) 18cqw;
+      align-items: start;
+      gap: 2cqw;
     }
-    .cover-chefs .bear { left: 0; }
-    .cover-chefs .bull { right: 0; }
+    .cover-chefs .chef-sprite { --chef-height: 22cqw; }
+    .cover-chefs .bear { justify-self: end; }
+    .cover-chefs .bull { justify-self: start; }
     .cover-note {
-      position: absolute;
-      left: 21cqw;
-      right: 21cqw;
-      top: 1.4cqw;
+      position: relative;
+      margin-top: 1.4cqw;
       min-height: 15.5cqw;
       padding: 2.4cqw;
       border: .18cqw solid var(--ink);
@@ -474,7 +507,7 @@
     const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
     const asset = (name) => "../characters/" + name;
     const chefAsset = (direction) => direction === "up"
-      ? asset("bull-chef-red-scarf-spatula.png")
+      ? asset("bull-chef-red-scarf-spatula.png?v=nose-ring-2")
       : asset("bear-chef-blue-scarf-whisk.png");
     const directionWord = (direction) => direction === "up" ? "상승" : "하락";
     const actionWord = (direction) => direction === "up" ? "올랐어요" : "내렸어요";
@@ -494,8 +527,31 @@
       return '<div class="card-foot"><span>' + esc(meta.date.replaceAll("-", " · ")) + ' 종가 기준</span><span>' + esc(right) + '</span></div>';
     }
 
+    // Opaque white underpaint follows the original bear drawing in source coordinates.
+    // Kept in the template so the original crayon artwork and transparent whisk gaps survive.
+    function bearWhiteFill() {
+      return '<svg class="chef-fill" viewBox="0 0 1218 1292" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><g fill="#fff">' +
+        '<path d="M446 374L438 265C365 251 342 209 361 157C381 97 457 66 516 132C515 67 557 18 612 18C680 14 730 59 723 132C774 72 850 95 868 153C889 208 855 249 791 266L783 373Z"/>' +
+        '<path d="M332 467C270 462 250 418 263 373C277 326 319 297 363 309C401 319 417 349 417 388Z"/>' +
+        '<path d="M813 385C820 335 851 306 891 308C949 311 977 363 966 411C959 443 936 463 892 468Z"/>' +
+        '<path d="M616 351C795 350 928 434 929 608C936 733 842 811 617 817C401 810 303 744 305 603C303 440 431 351 616 351Z"/>' +
+        '<path d="M411 789L339 845L337 909L367 965L393 902L371 1068C457 1143 745 1139 853 1067L856 994L950 920C907 865 864 821 811 791C717 826 503 830 411 789Z"/>' +
+        '<path d="M850 992L950 930C986 983 960 1027 913 1033C880 1038 860 1020 850 992Z"/>' +
+        '<path d="M397 1085C494 1134 724 1138 831 1085L811 1188C844 1226 818 1260 758 1266C701 1271 651 1260 643 1237L632 1176L593 1176L577 1240C563 1270 472 1277 426 1254C396 1240 395 1215 417 1187Z"/>' +
+        '<path d="M248 790L280 780L298 824L267 836Z"/>' +
+        '<path d="M283 823C326 816 346 842 344 876C342 905 330 914 307 920L319 948C270 957 244 931 242 890C239 856 252 832 283 823Z"/>' +
+        '<path d="M304 922L335 913L356 964C359 982 331 989 320 976Z"/>' +
+        '</g></svg>';
+    }
+
+    function chefSprite(direction) {
+      const kind = direction === "up" ? "bull" : "bear";
+      const label = direction === "up" ? "코뚜레를 한 황소 요리사" : "거품기를 든 곰 요리사";
+      return '<span class="chef-sprite ' + kind + '">' + (direction === "down" ? bearWhiteFill() : "") + '<img src="' + chefAsset(direction) + '" alt="' + label + '"></span>';
+    }
+
     function chefZone(direction, message) {
-      return '<div class="chef-zone"><img class="chef" src="' + chefAsset(direction) + '" alt="' + (direction === "up" ? "뒤집개를 든 황소 요리사" : "거품기를 든 곰 요리사") + '">' +
+      return '<div class="chef-zone">' + chefSprite(direction) +
         '<div class="speech"><div class="chef-label">' + chefName(direction) + '</div>' + message + '</div></div>';
     }
 
@@ -505,8 +561,8 @@
       return '<article class="post-card cover"><div class="sample-badge">' + esc(data.meta.status) + '</div><div class="card-inner">' +
         '<div class="cover-brand">FINSIGHT</div><h2>FIN DINING</h2><div class="cover-eyebrow">' + esc(data.cover.eyebrow) + '</div>' +
         '<div class="course-board">' + rows + '</div><div class="cover-chefs">' +
-        '<img class="bear" src="' + chefAsset("down") + '" alt="거품기를 든 곰 요리사"><div class="cover-note">' + esc(data.cover.note) + '</div>' +
-        '<img class="bull" src="' + chefAsset("up") + '" alt="뒤집개를 든 황소 요리사"></div>' +
+        chefSprite("down") + '<div class="cover-note">' + esc(data.cover.note) + '</div>' +
+        chefSprite("up") + '</div>' +
         foot(data.meta, data.meta.market) + '</div></article>';
     }
 
@@ -550,6 +606,8 @@
       document.getElementById("page-foot").textContent = data.disclaimer;
 
       const params = new URLSearchParams(location.search);
+      const palette = params.get("palette");
+      document.documentElement.dataset.palette = ["ivory", "blue", "sage", "blush"].includes(palette) ? palette : "ivory";
       const selected = Number(params.get("card"));
       if (selected >= 1 && selected <= cards.length) {
         document.body.classList.add("single");
