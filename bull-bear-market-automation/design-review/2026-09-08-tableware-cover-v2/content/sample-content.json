@@ -1,0 +1,112 @@
+{
+  "meta": {
+    "date": "2026-09-07",
+    "status": "BULL & BEAR · DAILY CLOSE",
+    "market": "국내 업종 · Npay 분류",
+    "source": "Npay 증권 · KRX 시세",
+    "package": "design-preview",
+    "direction": "up",
+    "cards": 7
+  },
+  "cover": {
+    "eyebrow": "오늘의 산업 코스",
+    "note": "반도체·전력은 강세입니다. 식품·화장품은 약세입니다.\n9월 7일 코스입니다."
+  },
+  "courses": [
+    {
+      "course": "AMUSE BOUCHE",
+      "rank": 4,
+      "theme": "기계",
+      "direction": "up",
+      "total": 104,
+      "directionalCount": 53,
+      "change": "+5.75%",
+      "reason": "AI 전력·발전 인프라 기대 영향",
+      "items": [
+        { "name": "삼미금속", "price": "10,200", "change": "+22.16%" },
+        { "name": "두산에너빌리티", "price": "87,900", "change": "+10.98%" },
+        { "name": "TPC로보틱스", "price": "4,375", "change": "+10.34%" }
+      ]
+    },
+    {
+      "course": "STARTER",
+      "rank": 3,
+      "theme": "전기장비",
+      "direction": "up",
+      "total": 35,
+      "directionalCount": 28,
+      "change": "+6.61%",
+      "reason": "AI 데이터센터 투자 확대 기대 영향",
+      "items": [
+        { "name": "가온전선", "price": "234,500", "change": "+10.61%" },
+        { "name": "효성중공업", "price": "2,965,000", "change": "+8.53%" },
+        { "name": "LS ELECTRIC", "price": "207,000", "change": "+5.99%" }
+      ]
+    },
+    {
+      "course": "SIGNATURE",
+      "rank": 2,
+      "theme": "화장품",
+      "direction": "down",
+      "total": 65,
+      "directionalCount": 46,
+      "change": "−1.64%",
+      "reason": "원화 강세의 수출 환산 부담 우려",
+      "items": [
+        { "name": "에이피알", "price": "384,000", "change": "−2.54%" },
+        { "name": "달바글로벌", "price": "186,700", "change": "−2.05%" },
+        { "name": "한국콜마", "price": "144,300", "change": "−1.03%" }
+      ]
+    },
+    {
+      "course": "MAIN",
+      "rank": 1,
+      "theme": "반도체·장비",
+      "direction": "up",
+      "total": 171,
+      "directionalCount": 120,
+      "change": "+6.63%",
+      "reason": "AI 설비투자 기대 회복 영향",
+      "items": [
+        { "name": "SK하이닉스", "price": "1,783,000", "change": "+8.26%" },
+        { "name": "SK스퀘어", "price": "1,125,000", "change": "+8.07%" },
+        { "name": "삼성전자", "price": "270,000", "change": "+5.68%" }
+      ]
+    },
+    {
+      "course": "DESSERT",
+      "rank": 5,
+      "theme": "식품",
+      "direction": "down",
+      "total": 92,
+      "directionalCount": 50,
+      "change": "−2.12%",
+      "reason": "환율 하락의 수출 매출 부담 우려",
+      "items": [
+        { "name": "삼양식품", "price": "1,330,000", "change": "−6.14%" },
+        { "name": "농심", "price": "415,000", "change": "−3.49%" },
+        { "name": "오리온", "price": "123,000", "change": "−2.61%" }
+      ]
+    }
+  ],
+  "menu": {
+    "course": "TODAY'S MENU",
+    "eyebrow": "오른 업종 상위 10",
+    "title": "지금 뜨는 산업",
+    "direction": "up",
+    "reason": "AI 설비투자·전력 인프라 기대 영향",
+    "items": [
+      { "name": "반도체·장비", "change": "+6.63%" },
+      { "name": "전기장비", "change": "+6.61%" },
+      { "name": "전자제품", "change": "+6.05%" },
+      { "name": "기계", "change": "+5.75%" },
+      { "name": "건강관리기술", "change": "+5.69%" },
+      { "name": "복합기업", "change": "+4.92%" },
+      { "name": "레저장비·제품", "change": "+4.85%" },
+      { "name": "생명보험", "change": "+4.51%" },
+      { "name": "건설", "change": "+4.51%" },
+      { "name": "전기유틸리티", "change": "+3.98%" }
+    ]
+  },
+  "disclaimer": "2026.09.07 KRX 정규장 종가 기준 디자인 검수본입니다. 투자 권유가 아닙니다."
+}

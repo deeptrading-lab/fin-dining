@@ -5,9 +5,8 @@
 ## 구성
 
 - `characters/`: 승인된 황소·곰 캐릭터와 요리 도구를 든 템플릿용 파생 자산
-- `design-review/2026-09-08-tableware-cover-v2/template/share.html`: 현재 승인된 7장 데이터 기반 템플릿
-- `design-review/2026-09-08-tableware-cover-v2/content/sample-content.json`: 현재 콘텐츠 입력 스키마와 디자인 검토용 샘플
-- `template/share.html`, `content/sample-content.json`: 레거시 참고본
+- `template/share.html`: 기존 `templates/share.html`의 구성을 유지한 7장 데이터 기반 갤러리
+- `content/sample-content.json`: 콘텐츠 입력 스키마와 디자인 검토용 샘플
 - `automation-prompt.md`: 최신 데이터 조사부터 PNG·게시글 생성까지의 전용 프롬프트
 - `AGENTS.md`: 이 폴더 안에서만 적용되는 실행 트리거
 - `example/`: 검수한 미리보기
@@ -34,7 +33,7 @@
 python3 -m http.server 8765
 ```
 
-승인 템플릿 폴더의 `content/sample-content.json`을 수정하고 새로고침하면 카드 내용이 바뀐다. 파일을 직접 열 때는 HTML에 포함된 폴백 샘플이 표시된다.
+이 폴더의 `content/sample-content.json`을 수정하고 새로고침하면 카드 내용이 바뀐다. 파일을 직접 열 때는 HTML에 포함된 폴백 샘플이 표시된다.
 
 개별 카드는 URL 끝에 `?card=1`부터 `?card=7`을 붙여 1080×1350 렌더 모드로 확인할 수 있다.
 
@@ -42,7 +41,7 @@ python3 -m http.server 8765
 
 ## 자동 생성 요청 예시
 
-이 폴더를 작업 위치로 두고 `오늘 Bull & Bear 만들어줘`라고 요청한다. 같은 날짜에 강세 `bull`과 약세 `bear` 패키지가 각각 생성된다. 자세한 규칙은 `automation-prompt.md`를 따른다.
+이 폴더를 작업 위치로 두고 `오늘 Bull & Bear 만들어줘`라고 요청한다. 같은 날짜에 강세 `bull`과 약세 `bear` 패키지를 각각 생성한다. 강세·약세 모두 테마 등락률 1~5위를 `MAIN → SIGNATURE → STARTER → AMUSE BOUCHE → DESSERT`에 대응하며, 자세한 규칙은 `automation-prompt.md`를 따른다.
 
 ## 배경색 비교 시안
 
@@ -54,4 +53,4 @@ python3 -m http.server 8765
 
 ## 최종 결과 정리
 
-검수 완료 후 당일 `output/YYYY-MM-DD/bull/`과 `output/YYYY-MM-DD/bear/`에는 각각 카드 PNG 7장과 `caption.md`, `reels-script.md`, `story-copy.md`만 남긴다. 날짜 폴더에는 두 패키지 폴더 외 중간 파일을 두지 않는다. ZIP은 만들지 않으며 미리보기·HTML·데이터·조사 자료·검수 기록·이전 버전은 삭제한다. 필요한 출처는 각 패키지의 원고에 포함한다. 공용 템플릿과 캐릭터는 보존한다.
+검수 완료 후 당일 `output/YYYY-MM-DD/bull/`과 `output/YYYY-MM-DD/bear/`에는 각각 카드 PNG 7장과 `caption.md`, `reels-script.md`, `story-copy.md`만 남긴다. ZIP은 만들지 않으며 미리보기·HTML·데이터·조사 자료·검수 기록·이전 버전은 삭제한다. 필요한 출처는 각 원고에 포함한다. 공용 템플릿과 캐릭터는 보존한다.

@@ -5,7 +5,7 @@
 사용자가 `오늘 Bull & Bear 만들어줘`, `오늘 불앤베어 게시물 만들어줘`, `오늘 상승 하락 종목 카드 만들어줘` 또는 같은 의미로 요청하면 다음을 수행한다.
 
 1. `automation-prompt.md`를 처음부터 끝까지 읽는다.
-2. 승인된 현재 템플릿인 `design-review/2026-09-08-tableware-cover-v2/content/sample-content.json` 스키마와 `design-review/2026-09-08-tableware-cover-v2/template/share.html`을 사용한다. 루트의 기존 `template/share.html`은 레거시 참고본이다.
+2. 이 폴더의 `content/sample-content.json` 스키마와 `template/share.html`을 승인된 현재 템플릿으로 사용한다.
 3. 최신 시장 데이터를 조사하고 출처를 교차 확인한다.
 4. 상승은 빨강, 하락은 파랑 외의 포인트 색을 추가하지 않는다.
 5. 카드 전체를 생성형 AI로 다시 그리지 않고 HTML/CSS로 합성한다.

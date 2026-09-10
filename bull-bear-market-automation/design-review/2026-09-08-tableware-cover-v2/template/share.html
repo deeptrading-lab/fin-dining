@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FIN DINING · Bull & Bear Course</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #fffefa;
+      --card-bg: #fbf8f2; /* Approved warm ivory · 2026-09-07 */
+      --page: #eeeeeb;
+      --ink: #151515;
+      --muted: #777777;
+      --line: #c7c7c1;
+      --soft: #efefeb;
+      --up: #e23b35;
+      --down: #3569d4;
+    }
+
+    :root[data-palette="ivory"] { --card-bg: #fbf8f2; }
+    :root[data-palette="blue"] { --card-bg: #f6f9fc; }
+    :root[data-palette="sage"] { --card-bg: #f7faf7; }
+    :root[data-palette="blush"] { --card-bg: #fcf7f6; }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: var(--page);
+      color: var(--ink);
+      padding: 42px 22px 70px;
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    }
+
+    .page-head {
+      max-width: 1280px;
+      margin: 0 auto 34px;
+      text-align: center;
+    }
+    .page-head .brand {
+      font-size: 13px;
+      letter-spacing: .42em;
+      color: var(--muted);
+    }
+    .page-head h1 {
+      margin: 10px 0 0;
+      font-family: "New York", Georgia, serif;
+      font-size: 44px;
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+    .page-head p { margin: 12px 0 0; color: var(--muted); }
+
+    .gallery {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 32px;
+      align-items: start;
+    }
+    .gallery-item { margin: 0; min-width: 0; }
+    .gallery-item figcaption {
+      padding: 13px 5px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      color: var(--ink);
+    }
+    .gallery-item figcaption span {
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: .1em;
+    }
+
+    .post-card {
+      container-type: inline-size;
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      background: var(--card-bg);
+      color: var(--ink);
+      box-shadow: 0 10px 28px rgb(0 0 0 / 10%);
+    }
+    .post-card::before,
+    .post-card::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      z-index: 20;
+    }
+    .post-card::before { inset: 4.2cqw; border: .22cqw solid var(--ink); }
+    .post-card::after { inset: 5cqw; border: .11cqw solid var(--line); }
+
+    .card-inner {
+      position: absolute;
+      inset: 0;
+      padding: 7.4cqw 9.3cqw 7cqw;
+    }
+    .card-top {
+      height: 7.8cqw;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      border-bottom: .12cqw solid var(--line);
+      font-family: "New York", Georgia, serif;
+      font-size: 1.9cqw;
+      letter-spacing: .35em;
+    }
+    .card-top .course { text-align: right; }
+    .sample-badge {
+      position: absolute;
+      z-index: 30;
+      top: 2.4cqw;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.05cqw;
+      letter-spacing: .18em;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .theme-meta {
+      margin-top: 2.5cqw;
+      color: var(--muted);
+      font-size: 2cqw;
+      letter-spacing: .26em;
+    }
+    .theme-title {
+      margin: 1.2cqw 0 0;
+      font-size: 4.5cqw;
+      line-height: 1.05;
+      letter-spacing: -.04em;
+    }
+
+    .table-setting {
+      position: absolute;
+      top: 23.8cqw;
+      left: 8cqw;
+      right: 8cqw;
+      height: 58cqw;
+    }
+    .tableware-art {
+      position: absolute;
+      z-index: 0;
+      left: 50%;
+      top: 50%;
+      width: 77cqw;
+      height: 77cqw;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      user-select: none;
+    }
+    .tableware-art img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    /* Scale the approved engraved plate to the original plate footprint. */
+    .tableware-art .plate-art {
+      inset: 50% auto auto 50%;
+      width: 78%;
+      height: 78%;
+      transform: translate(-50%, -50%);
+      clip-path: circle(42.8% at 50% 50%);
+    }
+    .tableware-art .utensil-art {
+      z-index: 2;
+      transform: scale(.6);
+    }
+    .tableware-art .fork-art {
+      clip-path: inset(0 84% 0 0);
+      transform-origin: 11% 52%;
+    }
+    .tableware-art .knife-art {
+      clip-path: inset(0 0 0 85%);
+      transform-origin: 94% 52%;
+    }
+    .plate {
+      position: absolute;
+      z-index: 1;
+      left: 50%;
+      top: 50%;
+      width: 40.5cqw;
+      height: 40.5cqw;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: var(--paper);
+    }
+    .stock-list {
+      position: absolute;
+      z-index: 2;
+      left: 50%;
+      top: 50%;
+      width: 35.5cqw;
+      transform: translate(-50%, -50%);
+      display: grid;
+      gap: 1.6cqw;
+    }
+    .stock-list.sparse { gap: 3cqw; }
+    .stock-row {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) .72fr .82fr;
+      align-items: baseline;
+      column-gap: 1cqw;
+      font-size: 2.48cqw;
+      line-height: 1.14;
+    }
+    .stock-row:first-child {
+      padding-bottom: 1.2cqw;
+      border-bottom: .12cqw solid var(--line);
+      font-weight: 750;
+      font-size: 2.9cqw;
+    }
+    .stock-name {
+      min-width: 0;
+      white-space: nowrap;
+      letter-spacing: -.04em;
+    }
+    .stock-name.long { font-size: .76em; }
+    .stock-price {
+      color: var(--muted);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .stock-change {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .tone-up .accent, .tone-up .stock-change { color: var(--up); }
+    .tone-down .accent, .tone-down .stock-change { color: var(--down); }
+
+    .chef-zone {
+      position: absolute;
+      left: 12cqw;
+      right: 12cqw;
+      bottom: 15.2cqw;
+      height: 20.5cqw;
+      z-index: 5;
+    }
+    /* Bounds exclude transparent padding; both chefs use the same visible height.
+       Speech-tail tip to visible silhouette: 2.6 - 1.45 = 1.15cqw. */
+    .chef-sprite {
+      --chef-height: 23cqw;
+      position: relative;
+      display: block;
+      flex: none;
+      height: var(--chef-height);
+      width: calc(var(--chef-height) * var(--aspect));
+      overflow: hidden;
+      z-index: 3;
+    }
+    .chef-sprite.bull {
+      --aspect: 0.76565; /* visible bounds: 67,26–1021,1272 in 1200×1310 */
+      --image-width: 125.7862%; --image-left: -7.0231%; --image-top: -2.0867%;
+    }
+    .chef-sprite.bear {
+      --aspect: 0.68318; /* visible bounds: 111,6–980,1278 in 1218×1292 */
+      --image-width: 140.1611%; --image-left: -12.7733%; --image-top: -0.4717%;
+    }
+    .chef-sprite img,
+    .chef-sprite .chef-fill {
+      position: absolute;
+      width: var(--image-width);
+      max-width: none;
+      height: auto;
+      left: var(--image-left);
+      top: var(--image-top);
+    }
+    .chef-zone {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 2.2cqw;
+    }
+    .chef-zone .chef-sprite { bottom: -1.6cqw; }
+    .tone-up .chef-zone { flex-direction: row-reverse; }
+    .speech {
+      position: relative;
+      flex: 0 0 46cqw;
+      min-width: 0;
+      align-self: flex-start;
+      margin-top: 1.2cqw;
+      min-height: 16.5cqw;
+      padding: 2.15cqw 2.35cqw;
+      border: .18cqw solid var(--ink);
+      border-radius: 2.5cqw;
+      background: var(--paper);
+      font-size: 2.25cqw;
+      line-height: 1.4;
+      letter-spacing: .005em;
+    }
+    .speech::before,
+    .speech::after {
+      content: "";
+      position: absolute;
+      top: 8.2cqw;
+      width: 0;
+      height: 0;
+      border-top: 1.25cqw solid transparent;
+      border-bottom: 1.25cqw solid transparent;
+    }
+    .tone-up .speech::before { right: -1.45cqw; border-left: 1.45cqw solid var(--ink); }
+    .tone-up .speech::after { right: -1.18cqw; border-left: 1.4cqw solid var(--paper); }
+    .tone-down .speech::before { left: -1.45cqw; border-right: 1.45cqw solid var(--ink); }
+    .tone-down .speech::after { left: -1.18cqw; border-right: 1.4cqw solid var(--paper); }
+    .chef-label {
+      margin-bottom: .6cqw;
+      font-family: "New York", Georgia, serif;
+      font-size: 1.48cqw;
+      letter-spacing: .28em;
+    }
+    .tone-up .chef-label { color: var(--up); }
+    .tone-down .chef-label { color: var(--down); }
+    .speech-lines {
+      display: grid;
+      gap: .28cqw;
+    }
+    .speech-line {
+      display: block;
+      white-space: nowrap;
+    }
+
+    .card-foot {
+      position: absolute;
+      left: 9.3cqw;
+      right: 9.3cqw;
+      bottom: 7.2cqw;
+      padding-top: 2.2cqw;
+      border-top: .12cqw solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 1.72cqw;
+      letter-spacing: .05em;
+    }
+
+    .cover .card-inner { text-align: center; }
+    .cover-brand {
+      margin-top: 1.5cqw;
+      font-size: 1.9cqw;
+      letter-spacing: .45em;
+      color: var(--muted);
+    }
+    .cover h2 {
+      margin: 0;
+      margin-top: 1.8cqw;
+      font-family: "New York", Georgia, serif;
+      font-size: 6.2cqw;
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+    .cover-eyebrow {
+      margin-top: 1.2cqw;
+      font-size: 2.4cqw;
+      letter-spacing: .28em;
+    }
+    .course-board {
+      width: 58cqw;
+      margin: 7.4cqw auto 0;
+      display: grid;
+      grid-template-columns: 1fr;
+      row-gap: 0;
+    }
+    .course-board::before {
+      content: "TASTING MENU";
+      grid-column: 1 / -1;
+      padding-bottom: 1.4cqw;
+      border-bottom: .12cqw solid var(--line);
+      color: var(--muted);
+      font-family: "New York", Georgia, serif;
+      font-size: 1.35cqw;
+      letter-spacing: .35em;
+    }
+    .course-board-row {
+      min-width: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: center;
+      column-gap: .8cqw;
+      row-gap: .3cqw;
+      padding: 1.55cqw 1cqw 1.7cqw;
+      border-bottom: .12cqw solid var(--line);
+      text-align: center;
+    }
+    .course-board-row .label {
+      flex-basis: 100%;
+      color: var(--muted);
+      font-family: "New York", Georgia, serif;
+      font-size: 1.38cqw;
+      letter-spacing: .3em;
+    }
+    .course-board-row .name {
+      font-size: 2.58cqw;
+      font-weight: 700;
+      letter-spacing: -.03em;
+    }
+    .course-board-row .value {
+      font-size: 2.28cqw;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .course-board-row.main {
+      margin: 0 -1.8cqw;
+      padding: 1.8cqw 1.8cqw 1.95cqw;
+    }
+    .course-board-row.main .label { font-size: 1.5cqw; }
+    .course-board-row.main .name { font-size: 3.28cqw; }
+    .course-board-row.main .value { font-size: 2.7cqw; }
+    .value.up { color: var(--up); }
+    .value.down { color: var(--down); }
+    .cover-chefs {
+      position: absolute;
+      left: 8.5cqw;
+      right: 8.5cqw;
+      bottom: 15.2cqw;
+      height: 21cqw;
+    }
+    .cover-chefs {
+      display: grid;
+      grid-template-columns: 17cqw minmax(0, 1fr) 17cqw;
+      align-items: end;
+      gap: 1.5cqw;
+    }
+    .cover-chefs .chef-sprite { --chef-height: 22cqw; }
+    .cover-chefs .bear { justify-self: end; }
+    .cover-chefs .bull { justify-self: start; }
+    .cover-chef-spacer { width: 17cqw; height: 1px; }
+    .cover-note {
+      position: relative;
+      margin: 0 0 .8cqw;
+      padding: 1.7cqw 1.4cqw 0;
+      border-top: .12cqw solid var(--line);
+      color: var(--muted);
+      font-size: 1.76cqw;
+      line-height: 1.5;
+      text-align: center;
+      white-space: pre-line;
+    }
+
+    .menu-list {
+      margin-top: 3.2cqw;
+      display: grid;
+      gap: 2.1cqw;
+    }
+    .menu-list.five {
+      margin-top: 4.4cqw;
+      gap: 3.2cqw;
+    }
+    .menu-list.five .menu-row .rank { font-size: 1.9cqw; }
+    .menu-list.five .menu-row .name,
+    .menu-list.five .menu-row .change { font-size: 3cqw; }
+    .menu-row {
+      display: grid;
+      grid-template-columns: 4cqw auto 1fr auto;
+      align-items: baseline;
+      gap: 1cqw;
+    }
+    .menu-row .rank {
+      color: var(--muted);
+      font-family: "New York", Georgia, serif;
+      font-size: 1.7cqw;
+      letter-spacing: .12em;
+    }
+    .menu-row .name { font-size: 2.65cqw; font-weight: 700; white-space: nowrap; }
+    .menu-row .dots { border-bottom: .13cqw dotted var(--line); transform: translateY(-.45cqw); }
+    .menu-row .change { font-size: 2.62cqw; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .page-foot {
+      max-width: 1280px;
+      margin: 42px auto 0;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    .error {
+      max-width: 720px;
+      margin: 80px auto;
+      padding: 28px;
+      border: 2px solid var(--ink);
+      background: white;
+    }
+
+    body.single {
+      padding: 0;
+      background: var(--paper);
+      overflow: auto;
+    }
+    body.single .page-head,
+    body.single .page-foot,
+    body.single .gallery-item:not(.selected),
+    body.single figcaption { display: none; }
+    body.single .gallery {
+      display: block;
+      width: 1080px;
+      max-width: none;
+      margin: 0;
+    }
+    body.single .gallery-item.selected { width: 1080px; }
+    body.capture .gallery { width: 960px; }
+    body.capture .gallery-item.selected { width: 960px; }
+
+    body.compact { padding: 24px; }
+    body.compact .page-head { margin-bottom: 18px; }
+    body.compact .page-head h1 { font-size: 30px; }
+    body.compact .page-head p,
+    body.compact .page-foot,
+    body.compact figcaption { display: none; }
+    body.compact .gallery {
+      width: 1352px;
+      max-width: 1352px;
+      grid-template-columns: repeat(4, 320px);
+      gap: 24px;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 22px 14px 50px; }
+      .page-head h1 { font-size: 34px; }
+      .gallery { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="page-head">
+    <div class="brand">FINSIGHT</div>
+    <h1>FIN DINING</h1>
+    <p id="page-meta">Bull & Bear 코스 디자인 샘플</p>
+  </header>
+  <main class="gallery" id="gallery"></main>
+  <footer class="page-foot" id="page-foot"></footer>
+
+  <script>
+    const FALLBACK = {
+      meta: { date: "2026-09-07", status: "BULL & BEAR · DAILY CLOSE", market: "국내 업종 · Npay 분류", source: "Npay 증권 · KRX 시세", cards: 7 },
+      cover: { eyebrow: "오늘의 산업 코스", note: "반도체·전력은 강세입니다. 식품·화장품은 약세입니다.\n9월 7일 코스입니다." },
+      courses: [
+        { course: "AMUSE BOUCHE", theme: "기계", direction: "up", total: 104, directionalCount: 53, change: "+5.75%", reason: "AI 전력·발전 인프라 기대 영향", items: [{name:"삼미금속",price:"10,200",change:"+22.16%"},{name:"두산에너빌리티",price:"87,900",change:"+10.98%"},{name:"TPC로보틱스",price:"4,375",change:"+10.34%"}] },
+        { course: "STARTER", theme: "전기장비", direction: "up", total: 35, directionalCount: 28, change: "+6.61%", reason: "AI 데이터센터 투자 확대 기대 영향", items: [{name:"가온전선",price:"234,500",change:"+10.61%"},{name:"효성중공업",price:"2,965,000",change:"+8.53%"},{name:"LS ELECTRIC",price:"207,000",change:"+5.99%"}] },
+        { course: "SIGNATURE", theme: "화장품", direction: "down", total: 65, directionalCount: 46, change: "−1.64%", reason: "원화 강세의 수출 환산 부담 우려", items: [{name:"에이피알",price:"384,000",change:"−2.54%"},{name:"달바글로벌",price:"186,700",change:"−2.05%"},{name:"한국콜마",price:"144,300",change:"−1.03%"}] },
+        { course: "MAIN", theme: "반도체·장비", direction: "up", total: 171, directionalCount: 120, change: "+6.63%", reason: "AI 설비투자 기대 회복 영향", items: [{name:"SK하이닉스",price:"1,783,000",change:"+8.26%"},{name:"SK스퀘어",price:"1,125,000",change:"+8.07%"},{name:"삼성전자",price:"270,000",change:"+5.68%"}] },
+        { course: "DESSERT", theme: "식품", direction: "down", total: 92, directionalCount: 50, change: "−2.12%", reason: "환율 하락의 수출 매출 부담 우려", items: [{name:"삼양식품",price:"1,330,000",change:"−6.14%"},{name:"농심",price:"415,000",change:"−3.49%"},{name:"오리온",price:"123,000",change:"−2.61%"}] }
+      ],
+      menu: { course: "TODAY'S MENU", eyebrow: "오른 업종 상위 10", title: "지금 뜨는 산업", direction: "up", reason: "AI 설비투자·전력 인프라 기대 영향", items: [{name:"반도체·장비",change:"+6.63%"},{name:"전기장비",change:"+6.61%"},{name:"전자제품",change:"+6.05%"},{name:"기계",change:"+5.75%"},{name:"건강관리기술",change:"+5.69%"},{name:"복합기업",change:"+4.92%"},{name:"레저장비·제품",change:"+4.85%"},{name:"생명보험",change:"+4.51%"},{name:"건설",change:"+4.51%"},{name:"전기유틸리티",change:"+3.98%"}] },
+      disclaimer: "2026.09.07 KRX 정규장 종가 기준 디자인 검수본입니다. 투자 권유가 아닙니다."
+    };
+
+    const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
+    const asset = (name) => "../characters/" + name;
+    const tablewareAsset = "../assets/bull-bear-place-setting-v2.png";
+    const plateAsset = "../assets/bull-bear-engraved-plate-v1.png";
+    const chefAsset = (direction) => direction === "up"
+      ? asset("bull-chef-red-scarf-spatula.png?v=nose-ring-2")
+      : asset("bear-chef-blue-scarf-whisk.png");
+    const directionWord = (direction) => direction === "up" ? "상승" : "하락";
+    const actionWord = (direction) => direction === "up" ? "올랐어요" : "내렸어요";
+    const biggestWord = (direction) => direction === "up" ? "오른" : "내린";
+    const chefName = (direction) => direction === "up" ? "CHEF BULL" : "CHEF BEAR";
+    const packageWord = (direction) => direction === "up" ? "강세" : "약세";
+    const COURSE_RANK = { "MAIN": 1, "SIGNATURE": 2, "STARTER": 3, "AMUSE BOUCHE": 4, "DESSERT": 5 };
+    const COVER_ORDER = ["AMUSE BOUCHE", "STARTER", "SIGNATURE", "MAIN", "DESSERT"];
+    const courseRank = (item) => Number(item.rank ?? COURSE_RANK[item.course] ?? 99);
+
+    function frameTop(course) {
+      return '<div class="sample-badge">BULL &amp; BEAR · DAILY CLOSE</div><div class="card-top"><span>FIN DINING</span><span class="course">' + esc(course) + '</span></div>';
+    }
+
+    function foot(meta, right) {
+      return '<div class="card-foot"><span>' + esc(meta.date.replaceAll("-", " · ")) + ' 종가 기준</span><span>' + esc(right) + '</span></div>';
+    }
+
+    // Opaque white underpaint follows the original bear drawing in source coordinates.
+    // Kept in the template so the original crayon artwork and transparent whisk gaps survive.
+    function bearWhiteFill() {
+      return '<svg class="chef-fill" viewBox="0 0 1218 1292" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><g fill="#fff">' +
+        '<path d="M446 374L438 265C365 251 342 209 361 157C381 97 457 66 516 132C515 67 557 18 612 18C680 14 730 59 723 132C774 72 850 95 868 153C889 208 855 249 791 266L783 373Z"/>' +
+        '<path d="M332 467C270 462 250 418 263 373C277 326 319 297 363 309C401 319 417 349 417 388Z"/>' +
+        '<path d="M813 385C820 335 851 306 891 308C949 311 977 363 966 411C959 443 936 463 892 468Z"/>' +
+        '<path d="M616 351C795 350 928 434 929 608C936 733 842 811 617 817C401 810 303 744 305 603C303 440 431 351 616 351Z"/>' +
+        '<path d="M411 789L339 845L337 909L367 965L393 902L371 1068C457 1143 745 1139 853 1067L856 994L950 920C907 865 864 821 811 791C717 826 503 830 411 789Z"/>' +
+        '<path d="M850 992L950 930C986 983 960 1027 913 1033C880 1038 860 1020 850 992Z"/>' +
+        '<path d="M397 1085C494 1134 724 1138 831 1085L811 1188C844 1226 818 1260 758 1266C701 1271 651 1260 643 1237L632 1176L593 1176L577 1240C563 1270 472 1277 426 1254C396 1240 395 1215 417 1187Z"/>' +
+        '<path d="M248 790L280 780L298 824L267 836Z"/>' +
+        '<path d="M283 823C326 816 346 842 344 876C342 905 330 914 307 920L319 948C270 957 244 931 242 890C239 856 252 832 283 823Z"/>' +
+        '<path d="M304 922L335 913L356 964C359 982 331 989 320 976Z"/>' +
+        '</g></svg>';
+    }
+
+    function chefSprite(direction) {
+      const kind = direction === "up" ? "bull" : "bear";
+      const label = direction === "up" ? "코뚜레를 한 황소 요리사" : "거품기를 든 곰 요리사";
+      return '<span class="chef-sprite ' + kind + '">' + (direction === "down" ? bearWhiteFill() : "") + '<img src="' + chefAsset(direction) + '" alt="' + label + '"></span>';
+    }
+
+    function chefZone(direction, message) {
+      return '<div class="chef-zone">' + chefSprite(direction) +
+        '<div class="speech"><div class="chef-label">' + chefName(direction) + '</div>' + message + '</div></div>';
+    }
+
+    function coverCard(data) {
+      const coverCourses = [...data.courses].sort((a, b) => COVER_ORDER.indexOf(a.course) - COVER_ORDER.indexOf(b.course));
+      const coverDirection = data.meta.direction || coverCourses[0]?.direction || "up";
+      const leftChef = coverDirection === "down" ? chefSprite("down") : '<span class="cover-chef-spacer"></span>';
+      const rightChef = coverDirection === "up" ? chefSprite("up") : '<span class="cover-chef-spacer"></span>';
+      const rows = coverCourses.map((item) => '<div class="course-board-row ' + esc(item.course.toLowerCase()) + '">' +
+        '<span class="label">' + esc(item.course) + '</span><span class="name">' + esc(item.theme) + '</span><span class="value ' + esc(item.direction) + '">' + esc(item.change) + '</span></div>').join("");
+      return '<article class="post-card cover"><div class="sample-badge">' + esc(data.meta.status) + '</div><div class="card-inner">' +
+        '<div class="cover-brand">FINSIGHT</div><h2>FIN DINING</h2><div class="cover-eyebrow">' + esc(data.cover.eyebrow) + '</div>' +
+        '<div class="course-board">' + rows + '</div><div class="cover-chefs">' +
+        leftChef + '<div class="cover-note">' + esc(data.cover.note) + '</div>' + rightChef + '</div>' +
+        foot(data.meta, data.meta.market) + '</div></article>';
+    }
+
+    function courseCard(item, meta) {
+      const rows = item.items.map((stock, index) => '<div class="stock-row">' +
+        '<span class="stock-name ' + (stock.name.length > 10 ? "long" : "") + '">' + esc(stock.name) + '</span>' +
+        '<span class="stock-price">' + esc(stock.price) + '</span><span class="stock-change">' + esc(stock.change) + '</span></div>').join("");
+      const top = item.items[0];
+      const message = '<div class="speech-lines">' +
+        '<span class="speech-line"><b>' + packageWord(item.direction) + ' ' + courseRank(item) + '위</b> · ' + esc(item.theme) + '</span>' +
+        '<span class="speech-line">대표 <b>' + esc(top.name) + '</b> <b class="accent">' + esc(top.change) + '</b></span>' +
+        '<span class="speech-line">' + esc(item.reason) + '</span></div>';
+      return '<article class="post-card tone-' + esc(item.direction) + '">' +
+        '<div class="card-inner">' + frameTop(item.course) +
+        '<div class="theme-meta">' + packageWord(item.direction) + ' ' + courseRank(item) + '위 · ' + esc(item.total) + '개 중 ' + esc(item.directionalCount) + '개 ' + directionWord(item.direction) + '</div>' +
+        '<h2 class="theme-title">' + esc(item.theme) + '</h2>' +
+        '<div class="table-setting"><div class="tableware-art" role="img" aria-label="손그림 질감의 작은 은색 포크, 흰 접시, 작은 은색 나이프">' +
+        '<img class="plate-art" src="' + plateAsset + '" alt="">' +
+        '<img class="utensil-art fork-art" src="' + tablewareAsset + '" alt=""><img class="utensil-art knife-art" src="' + tablewareAsset + '" alt=""></div>' +
+        '<div class="plate"><div class="stock-list ' + (item.items.length < 4 ? "sparse" : "") + '">' + rows + '</div></div></div>' +
+        chefZone(item.direction, message) + foot(meta, directionWord(item.direction) + ' 종목 ' + item.items.length + '개') +
+        '</div></article>';
+    }
+
+    function menuCard(menu, meta) {
+      const rows = menu.items.map((item, index) => '<div class="menu-row"><span class="rank">' + String(index + 1).padStart(2, "0") + '</span>' +
+        '<span class="name">' + esc(item.name) + '</span><span class="dots"></span><span class="change accent">' + esc(item.change) + '</span></div>').join("");
+      const first = menu.items[0];
+      const message = '<div class="speech-lines">' +
+        '<span class="speech-line">오늘 ' + packageWord(menu.direction) + ' 테마 <b class="accent">' + menu.items.length + '개</b> 순위</span>' +
+        '<span class="speech-line">1위 <b>' + esc(first.name) + '</b> <b class="accent">' + esc(first.change) + '</b></span>' +
+        '<span class="speech-line">' + esc(menu.reason) + '</span></div>';
+      return '<article class="post-card menu-card tone-' + esc(menu.direction) + '"><div class="card-inner">' +
+        frameTop(menu.course) + '<div class="theme-meta">' + esc(menu.eyebrow) + '</div><h2 class="theme-title">' + esc(menu.title) + '</h2>' +
+        '<div class="menu-list ' + (menu.items.length === 5 ? "five" : "") + '">' + rows + '</div>' + chefZone(menu.direction, message) + foot(meta, '출처 ' + meta.source) +
+        '</div></article>';
+    }
+
+    function item(card, number, title, subtitle) {
+      return '<figure class="gallery-item" data-card="' + number + '">' + card + '<figcaption><span>' + String(number).padStart(2, "0") + '</span><b>' + esc(title) + '</b><span>' + esc(subtitle) + '</span></figcaption></figure>';
+    }
+
+    function render(data) {
+      const cards = [item(coverCard(data), 1, "커버 · 오늘의 메뉴판", "다섯 코스의 방향과 등락률")];
+      const rankedCourses = [...data.courses].sort((a, b) => courseRank(a) - courseRank(b));
+      rankedCourses.forEach((course, index) => cards.push(item(courseCard(course, data.meta), index + 2, course.course + " · " + course.theme, packageWord(course.direction) + " " + courseRank(course) + "위")));
+      cards.push(item(menuCard(data.menu, data.meta), 7, "오늘의 메뉴 · 업종 등락 랭킹", data.menu.eyebrow));
+      document.getElementById("gallery").innerHTML = cards.join("");
+      document.getElementById("page-meta").textContent = data.meta.date + " 종가 기준 · 중앙 접시형 7장";
+      document.getElementById("page-foot").textContent = data.disclaimer;
+
+      const params = new URLSearchParams(location.search);
+      const palette = params.get("palette");
+      document.documentElement.dataset.palette = ["ivory", "blue", "sage", "blush"].includes(palette) ? palette : "ivory";
+      const selected = Number(params.get("card"));
+      if (selected >= 1 && selected <= cards.length) {
+        document.body.classList.add("single");
+        if (params.get("capture") === "1") document.body.classList.add("capture");
+        const target = document.querySelector('[data-card="' + selected + '"]');
+        if (target) target.classList.add("selected");
+      } else if (params.get("compact") === "1") {
+        document.body.classList.add("compact");
+      }
+    }
+
+    const contentPath = new URLSearchParams(location.search).get("data") || "../content/sample-content.json";
+    fetch(contentPath)
+      .then((response) => {
+        if (!response.ok) throw new Error("content load failed");
+        return response.json();
+      })
+      .then(render)
+      .catch(() => render(FALLBACK));
+  </script>
+</body>
+</html>
