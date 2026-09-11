@@ -139,7 +139,11 @@ python3 scripts/cutout_assets.py
 |---|---|
 | `chef-bull.png` | 상승을 해설하는 셰프. 이 코스에서는 늘 이쪽입니다 |
 | `chef-bear.png` | 하락 담당. 커버에 함께 서고, 하락 테마 게시물에서 말합니다 |
-| `cutlery-fork.png` · `cutlery-knife.png` | 접시 좌우 상차림 |
+| `cutlery-fork.png` · `cutlery-knife.png` | v1 일러스트 식기(이전 결과 재현용) |
+| `fine-dining-silver-setting-v2.png` | v2 은식기·실버 차저·백자 플레이트 상차림 |
+
+v2 커버는 다섯 업종을 같은 크기의 목록으로 놓지 않는다. 전채 2열, 시그니처 전환부, 확대된 MAIN
+카르투슈, 디저트 순으로 실제 테이스팅 메뉴의 위계를 만들며 보조 코스 상승률은 은회색으로 낮춘다.
 
 컷아웃은 테두리에서 flood fill로 배경을 지운 뒤 가장 큰 덩어리만 남기는 방식입니다. 캐릭터가 진한
 윤곽선으로 닫혀 있어 채우기가 안쪽으로 들어가지 못하고, 떨어져 있는 장식(반짝이·하트)은 덩어리

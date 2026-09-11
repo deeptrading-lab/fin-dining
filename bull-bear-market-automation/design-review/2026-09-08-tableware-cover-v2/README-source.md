@@ -41,7 +41,7 @@ python3 -m http.server 8765
 
 ## 자동 생성 요청 예시
 
-이 폴더를 작업 위치로 두고 `오늘 Bull & Bear 만들어줘`라고 요청한다. 같은 날짜에 강세 `bull`과 약세 `bear` 패키지를 각각 생성한다. 강세·약세 모두 테마 등락률 1~5위를 `MAIN → SIGNATURE → STARTER → AMUSE BOUCHE → DESSERT`에 대응하며, 자세한 규칙은 `automation-prompt.md`를 따른다.
+이 폴더를 작업 위치로 두고 `오늘 게시물 만들어줘`나 `오늘 Bull & Bear 만들어줘`라고 요청한다. 상위 프롬프트의 `MARKET PLATE RULE v1.0`이 당일 `bull` 또는 `bear`를 고르고 선택된 방향의 테마 등락률 1~5위를 `MAIN → SIGNATURE → STARTER → AMUSE BOUCHE → DESSERT`에 대응한다. 자세한 규칙은 `automation-prompt.md`를 따른다.
 
 ## 배경색 비교 시안
 
@@ -53,4 +53,4 @@ python3 -m http.server 8765
 
 ## 최종 결과 정리
 
-검수 완료 후 당일 `output/YYYY-MM-DD/bull/`과 `output/YYYY-MM-DD/bear/`에는 각각 카드 PNG 7장과 `caption.md`, `reels-script.md`, `story-copy.md`만 남긴다. ZIP은 만들지 않으며 미리보기·HTML·데이터·조사 자료·검수 기록·이전 버전은 삭제한다. 필요한 출처는 각 원고에 포함한다. 공용 템플릿과 캐릭터는 보존한다.
+검수 완료 후 당일 `output/YYYY-MM-DD/`에는 선택된 `bull/` 또는 `bear/` 하나만 남기고 카드 PNG 7장과 `caption.md`, `reels-script.md`, `story-copy.md`만 둔다. ZIP은 만들지 않으며 반대 방향 패키지, 미리보기·HTML·데이터·조사 자료·검수 기록·이전 버전은 삭제한다. 필요한 출처와 방향 판정값은 원고에 포함한다. 공용 템플릿과 캐릭터는 보존한다.

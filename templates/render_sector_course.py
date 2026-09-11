@@ -29,6 +29,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 ROOT = Path(__file__).resolve().parent
 ART = ROOT / "assets"
 MANIFEST = ROOT / "templates-manifest.json"
+SILVER_SETTING = ART / "fine-dining-silver-setting-v2.png"
 
 W, H = 1080, 1350
 SS = 4  # 곡선용 슈퍼샘플 배율. Pillow 는 곡선·사선을 계단으로 그린다.
@@ -48,6 +49,9 @@ MUTED = (154, 143, 126)
 COURSE_INK = (162, 150, 127)
 PRICE_INK = (107, 97, 84)
 GOLD = (195, 161, 93)
+SILVER = (158, 161, 165)
+SILVER_DARK = (103, 106, 111)
+SILVER_LIGHT = (226, 227, 229)
 # 등락 색은 요일 브랜드 색과 분리한다. 등락은 뜻이 고정된 값이라 요일마다 색이 달라지면 의미가 흐려진다.
 # 요일 accent 는 MAIN 코스 라벨·태그라인처럼 브랜드가 말하는 자리에만 쓴다.
 UP = (224, 71, 58)
@@ -134,6 +138,39 @@ def smooth_shape(image: Image.Image, paint):
     tile = Image.new("RGBA", (image.width * SS, image.height * SS), (0, 0, 0, 0))
     paint(ImageDraw.Draw(tile), SS)
     image.alpha_composite(tile.resize(image.size, Image.Resampling.LANCZOS))
+
+
+def paste_stretched(image: Image.Image, art: Image.Image, box):
+    """투명 에셋을 지정 상자에 합성한다.
+
+    생성 자산에는 글자·숫자·로고가 없고, 그릇/식기의 재질만 제공한다. 데이터와 모든 레이블은
+    계속 Pillow로 그려서 템플릿의 재사용성과 숫자 정확성을 지킨다.
+    """
+    x1, y1, x2, y2 = (round(v) for v in box)
+    item = art.resize((x2 - x1, y2 - y1), Image.Resampling.LANCZOS)
+    image.alpha_composite(item, (x1, y1))
+
+
+def silver_setting_parts():
+    """하나의 승인 자산에서 접시·포크·나이프 컷아웃을 돌려준다.
+
+    세 요소를 같은 촬영본에서 가져와 반사광과 묘사 밀도가 어긋나지 않는다. 개별 크롭은 원본의
+    투명 여백을 일부 남겨 부드러운 접촉 그림자가 잘리지 않게 한다.
+    """
+    setting = Image.open(SILVER_SETTING).convert("RGBA")
+    return {
+        "fork": setting.crop((65, 40, 285, 1015)),
+        "plate": setting.crop((270, 0, 1265, 1024)),
+        "knife": setting.crop((1230, 35, 1475, 1018)),
+    }
+
+
+def draw_silver_place_setting(image: Image.Image, cy: float):
+    """은식기와 플래티넘 림 접시로 정식 상차림을 만든다."""
+    parts = silver_setting_parts()
+    paste_stretched(image, parts["plate"], (156, cy - 315, 924, cy + 315))
+    paste_stretched(image, parts["fork"], (84, cy - 262, 190, cy + 264))
+    paste_stretched(image, parts["knife"], (892, cy - 263, 996, cy + 266))
 
 
 def scallop(cx: float, cy: float, rx: float, ry: float, lobes: int = 34, depth: float = 4.5):
@@ -276,6 +313,13 @@ def draw_fitted_rows(draw, plan, cx: float, cy: float, rows):
     left = cx - plan["block_w"] / 2
     price_right = left + plan["name_col"] + plan["col_gap"] + plan["price_col"]
     pct_right = price_right + plan["col_gap"] + plan["pct_col"]
+    # 숫자의 의미를 추측하게 하지 않는다. 메뉴 어법을 해치지 않는 작은 열 머리만 한 번 둔다.
+    header_font = sans(18, "medium")
+    header_y = cy + plan["rows"][0]["dy"] - 34
+    draw.text((left, header_y), "종목", font=header_font, fill=COURSE_INK)
+    draw.text((price_right, header_y), "종가(원)", font=header_font, fill=COURSE_INK, anchor="ra")
+    draw.text((pct_right, header_y), "등락률", font=header_font, fill=COURSE_INK, anchor="ra")
+    draw.line((left, header_y + 24, pct_right, header_y + 24), fill=RIM_LINE, width=1)
     for i, placed in enumerate(plan["rows"]):
         row = rows[i]
         base = cy + placed["dy"] + placed["ascent"]  # anchor 의 s 는 baseline 을 뜻한다.
@@ -392,9 +436,10 @@ def draw_chef_and_bubble(image, draw, who: str, dialogue):
 # ── 카드별 렌더 ───────────────────────────────────────────────────────────────
 
 def render_cover(card: dict, cfg: dict) -> Image.Image:
-    """메뉴판 커버 — 코스 다섯 줄과 두 셰프.
+    """메뉴판 커버 — 코스의 흐름과 MAIN의 위계를 한눈에 보여 준다.
 
-    다섯 줄이 헤더와 셰프 사이 영역을 넘지 않는 가장 큰 배율을 찾아 세로 가운데에 앉힌다.
+    같은 크기의 다섯 행을 늘어놓던 구조를 정식 테이스팅 메뉴의 장면 구성으로 바꿨다. 전채 두 접시는
+    나란히, SIGNATURE는 전환부, MAIN은 넓은 실버 카르투슈, DESSERT는 여운처럼 아래에 둔다.
     """
     image, draw = new_card()
     x1, x2 = SLOTS["safe"]
@@ -412,48 +457,75 @@ def render_cover(card: dict, cfg: dict) -> Image.Image:
     draw_tracked(draw, (cx - tracked_w(draw, card["tagline"], tag_font, 7) / 2, top + 118),
                  card["tagline"], tag_font, accent, 7)
 
-    area_top, area_bottom = top + 176, SLOTS["body_bottom"]
-    entries = card["courses"]
-    for step in range(8):
-        scale = 1.0 - step * 0.05
-        f_label = serif(round(21 * scale))
-        rows = []
-        for entry in entries:
-            main = entry["main"]
-            f_name = sans(round((46 if main else 34) * scale), "semibold")
-            f_pct = sans(round((39 if main else 28) * scale), "bold")
-            rows.append({"label": entry["label"], "name": entry["name"], "pct": entry["pct"],
-                         "main": main, "f_name": f_name, "f_pct": f_pct,
-                         "h": round(f_label.size * 1.5) + round(f_name.size * 1.35)})
-        pad = round(20 * scale)
-        gap = round(24 * scale)
-        total = sum(r["h"] + (pad * 2 if r["main"] else 0) for r in rows) + gap * (len(rows) - 1)
-        if total <= area_bottom - area_top:
-            break
-    else:
-        raise ValueError("커버 코스 목록이 카드에 들어가지 않는다")
+    entries = {entry["label"]: entry for entry in card["courses"]}
+    missing = [name for name, _ in COURSE_PLAN if name not in entries]
+    if missing:
+        raise ValueError(f"커버 코스가 빠졌습니다: {', '.join(missing)}")
 
-    y = (area_top + area_bottom) / 2 - total / 2
-    for row in rows:
-        if row["main"]:
-            draw.line((x1, y, x2, y), fill=RULE, width=1)
-            y += pad
-        lw = tracked_w(draw, row["label"], f_label, 6.3)
-        draw_tracked(draw, (cx - lw / 2, y), row["label"], f_label,
-                     accent if row["main"] else COURSE_INK, 6.3)
-        line_y = y + round(f_label.size * 1.5)
-        name_w = text_w(draw, row["name"], row["f_name"])
-        pct_w = tabular_w(draw, row["pct"], row["f_pct"])
-        span = name_w + 14 + pct_w
-        ascent = row["f_name"].getmetrics()[0]
-        draw.text((cx - span / 2, line_y + ascent), row["name"], font=row["f_name"], fill=INK, anchor="ls")
-        draw_tabular(draw, cx - span / 2 + name_w + 14 + pct_w, line_y + ascent, row["pct"],
-                     row["f_pct"], DOWN if row.get("down") else UP)
-        y = line_y + round(row["f_name"].size * 1.35)
-        if row["main"]:
-            y += pad
-            draw.line((x1, y, x2, y), fill=RULE, width=1)
-        y += gap
+    # 중앙 메뉴 카드와 은식기: 포크·나이프의 실제 반사와 섬세한 손잡이가 '상차림'을 먼저 읽히게 한다.
+    parts = silver_setting_parts()
+    paste_stretched(image, parts["fork"], (76, 290, 150, 840))
+    paste_stretched(image, parts["knife"], (928, 290, 1002, 840))
+    panel = (164, 260, 916, 895)
+    shadow = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle((172, 270, 924, 907), radius=28, fill=(64, 58, 50, 35))
+    image.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(18)))
+    smooth_shape(image, lambda pen, s: pen.rounded_rectangle(
+        tuple(v * s for v in panel), radius=26 * s, fill=(255, 254, 250, 255),
+        outline=SILVER + (255,), width=2 * s))
+    draw.rounded_rectangle((178, 274, 902, 881), radius=20, outline=SILVER_LIGHT, width=2)
+
+    menu_font = serif(21)
+    menu_title = "TASTING MENU"
+    draw_tracked(draw, (cx - tracked_w(draw, menu_title, menu_font, 7) / 2, 284),
+                 menu_title, menu_font, SILVER_DARK, 7)
+    draw.line((434, 325, 646, 325), fill=accent, width=2)
+
+    def course_block(entry, center_x, y, width, name_size=31, pct_size=26, label_color=COURSE_INK):
+        label_font = serif(18)
+        lw = tracked_w(draw, entry["label"], label_font, 4.8)
+        draw_tracked(draw, (center_x - lw / 2, y), entry["label"], label_font, label_color, 4.8)
+        name_font = sans(name_size, "semibold")
+        pct_font = sans(pct_size, "bold")
+        name_w = text_w(draw, entry["name"], name_font)
+        pct_w = tabular_w(draw, entry["pct"], pct_font)
+        span = name_w + 12 + pct_w
+        if span > width:
+            raise ValueError(f"커버 코스명이 너무 깁니다: {entry['name']}")
+        baseline = y + 56
+        draw.text((center_x - span / 2, baseline), entry["name"], font=name_font, fill=INK, anchor="ls")
+        # 보조 코스 수치는 은회색으로 낮춰 MAIN의 상승률만 강하게 남긴다.
+        pct_fill = DOWN if entry.get("down") else SILVER_DARK
+        draw_tabular(draw, center_x - span / 2 + name_w + 12 + pct_w, baseline,
+                     entry["pct"], pct_font, pct_fill)
+
+    course_block(entries["AMUSE BOUCHE"], 352, 350, 310)
+    course_block(entries["STARTER"], 728, 350, 310)
+    draw.line((540, 342, 540, 447), fill=SILVER_LIGHT, width=2)
+    course_block(entries["SIGNATURE"], 540, 460, 570, name_size=34, pct_size=28)
+
+    # MAIN만 면·크기·여백을 모두 달리해 메뉴의 절정으로 만든다.
+    main = entries["MAIN"]
+    main_box = (228, 570, 852, 736)
+    smooth_shape(image, lambda pen, s: pen.rounded_rectangle(
+        tuple(v * s for v in main_box), radius=82 * s, fill=(246, 247, 248, 255),
+        outline=SILVER_DARK + (255,), width=2 * s))
+    draw.ellipse((247, 589, 833, 717), outline=SILVER_LIGHT, width=2)
+    main_label = "MAIN COURSE"
+    main_label_font = serif(21)
+    draw_tracked(draw, (cx - tracked_w(draw, main_label, main_label_font, 6.4) / 2, 592),
+                 main_label, main_label_font, accent, 6.4)
+    main_font, main_pct = sans(50, "bold"), sans(39, "bold")
+    mw, pw = text_w(draw, main["name"], main_font), tabular_w(draw, main["pct"], main_pct)
+    if mw + pw + 18 > 520:
+        main_font, main_pct = sans(44, "bold"), sans(35, "bold")
+        mw, pw = text_w(draw, main["name"], main_font), tabular_w(draw, main["pct"], main_pct)
+    baseline = 690
+    draw.text((cx - (mw + pw + 18) / 2, baseline), main["name"], font=main_font, fill=INK, anchor="ls")
+    draw_tabular(draw, cx - (mw + pw + 18) / 2 + mw + 18 + pw, baseline,
+                 main["pct"], main_pct, DOWN if main.get("down") else UP)
+
+    course_block(entries["DESSERT"], 540, 773, 570, name_size=32, pct_size=27)
 
     # 커버는 둘이 함께 나온다. 곰이 왼쪽, 황소가 오른쪽, 대사는 가운데.
     chef_x, chef_bottom, chef_h = SLOTS["chef"]
@@ -490,12 +562,9 @@ def render_dish(card: dict, cfg: dict) -> Image.Image:
     draw.text((x1, top + 104), card["sector"], font=sans(50, "bold"), fill=INK)
 
     cy = SLOTS["plate_cy"]
-    rx = SLOTS["plate_rx"] - SLOTS["cutlery_squeeze"]
-    ry = SLOTS["plate_ry"]
-    ix, iy = SLOTS["well_inset"]
-    well_rx, well_ry = rx - ix, ry - iy
-    draw_plate(image, W / 2, cy, rx, ry, well_rx, well_ry)
-    draw_cutlery(image, cy)
+    draw_silver_place_setting(image, cy)
+    # 실제 접시의 안쪽 웰. 데이터는 사진에 포함시키지 않고 이 영역에 코드로만 합성한다.
+    well_rx, well_ry = 255, 214
 
     plan = fit_rows(draw, card["rows"], well_rx, well_ry)
     draw_fitted_rows(draw, plan, W / 2, cy, card["rows"])
@@ -540,9 +609,15 @@ def render_board(card: dict, cfg: dict) -> Image.Image:
     pct_w = max(tabular_w(draw, r["pct"], f_pct) for r in rows)
     y = area_top
     for i, row in enumerate(rows, 1):
+        if i == 1:
+            lead_box = (x1 - 12, y - 10, x2 + 12, y + line_h + 12)
+            smooth_shape(image, lambda pen, s: pen.rounded_rectangle(
+                tuple(v * s for v in lead_box), radius=16 * s,
+                fill=(246, 247, 248, 255), outline=SILVER_LIGHT + (255,), width=s))
         ascent = f_name.getmetrics()[0]
         base = y + ascent
-        draw_tracked(draw, (x1, y + round(f_name.size * 0.24)), f"{i:02d}", f_rank, (188, 175, 149), 3)
+        rank_fill = cfg["accent"] if i == 1 else (188, 175, 149)
+        draw_tracked(draw, (x1, y + round(f_name.size * 0.24)), f"{i:02d}", f_rank, rank_fill, 3)
         name_x = x1 + rank_w + 22
         draw.text((name_x, base), row["name"], font=f_name, fill=INK, anchor="ls")
         draw_tabular(draw, x2, base, row["pct"], f_pct, DOWN if row.get("down") else UP)

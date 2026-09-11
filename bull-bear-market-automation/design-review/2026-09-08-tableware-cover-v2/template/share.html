@@ -603,6 +603,21 @@
         '<div class="speech"><div class="chef-label">' + chefName(direction) + '</div>' + message + '</div></div>';
     }
 
+    function customSpeech(lines) {
+      if (!Array.isArray(lines) || lines.length !== 3) return "";
+      const renderLine = (line) => {
+        if (typeof line === "string") return esc(line);
+        return esc(line.before || "") +
+          (line.strong ? '<b>' + esc(line.strong) + '</b>' : "") +
+          esc(line.middle || "") +
+          (line.accent ? '<b class="accent">' + esc(line.accent) + '</b>' : "") +
+          esc(line.after || "");
+      };
+      return '<div class="speech-lines">' +
+        lines.map((line) => '<span class="speech-line">' + renderLine(line) + '</span>').join("") +
+        '</div>';
+    }
+
     function coverCard(data) {
       const coverCourses = [...data.courses].sort((a, b) => COVER_ORDER.indexOf(a.course) - COVER_ORDER.indexOf(b.course));
       const coverDirection = data.meta.direction || coverCourses[0]?.direction || "up";
@@ -622,10 +637,10 @@
         '<span class="stock-name ' + (stock.name.length > 10 ? "long" : "") + '">' + esc(stock.name) + '</span>' +
         '<span class="stock-price">' + esc(stock.price) + '</span><span class="stock-change">' + esc(stock.change) + '</span></div>').join("");
       const top = item.items[0];
-      const message = '<div class="speech-lines">' +
+      const message = customSpeech(item.speechLines) || ('<div class="speech-lines">' +
         '<span class="speech-line"><b>' + packageWord(item.direction) + ' ' + courseRank(item) + '위</b> · ' + esc(item.theme) + '</span>' +
         '<span class="speech-line">대표 <b>' + esc(top.name) + '</b> <b class="accent">' + esc(top.change) + '</b></span>' +
-        '<span class="speech-line">' + esc(item.reason) + '</span></div>';
+        '<span class="speech-line">' + esc(item.reason) + '</span></div>');
       return '<article class="post-card tone-' + esc(item.direction) + '">' +
         '<div class="card-inner">' + frameTop(item.course) +
         '<div class="theme-meta">' + packageWord(item.direction) + ' ' + courseRank(item) + '위 · ' + esc(item.total) + '개 중 ' + esc(item.directionalCount) + '개 ' + directionWord(item.direction) + '</div>' +
@@ -642,10 +657,10 @@
       const rows = menu.items.map((item, index) => '<div class="menu-row"><span class="rank">' + String(index + 1).padStart(2, "0") + '</span>' +
         '<span class="name">' + esc(item.name) + '</span><span class="dots"></span><span class="change accent">' + esc(item.change) + '</span></div>').join("");
       const first = menu.items[0];
-      const message = '<div class="speech-lines">' +
+      const message = customSpeech(menu.speechLines) || ('<div class="speech-lines">' +
         '<span class="speech-line">오늘 ' + packageWord(menu.direction) + ' 테마 <b class="accent">' + menu.items.length + '개</b> 순위</span>' +
         '<span class="speech-line">1위 <b>' + esc(first.name) + '</b> <b class="accent">' + esc(first.change) + '</b></span>' +
-        '<span class="speech-line">' + esc(menu.reason) + '</span></div>';
+        '<span class="speech-line">' + esc(menu.reason) + '</span></div>');
       return '<article class="post-card menu-card tone-' + esc(menu.direction) + '"><div class="card-inner">' +
         frameTop(menu.course) + '<div class="theme-meta">' + esc(menu.eyebrow) + '</div><h2 class="theme-title">' + esc(menu.title) + '</h2>' +
         '<div class="menu-list ' + (menu.items.length === 5 ? "five" : "") + '">' + rows + '</div>' + chefZone(menu.direction, message) + foot(meta, '출처 ' + meta.source) +
